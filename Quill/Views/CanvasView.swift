@@ -58,6 +58,13 @@ struct CanvasView: UIViewRepresentable {
         if let request = zoomRequest, request.id != context.coordinator.lastZoomRequestID {
             context.coordinator.lastZoomRequestID = request.id
             canvas.setZoomScale(request.scale, animated: true)
+            // Programmatic animated zoom doesn't reliably tick the scroll
+            // delegate — report explicitly once the animation lands so the
+            // mirrored scale/offset (and the % label) stay in sync.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak canvas] in
+                guard let canvas else { return }
+                context.coordinator.parentTransform(canvas)
+            }
         }
     }
 
@@ -267,6 +274,11 @@ struct CanvasView: UIViewRepresentable {
 
         private func reportTransform(_ scrollView: UIScrollView) {
             parent.onTransform(scrollView.zoomScale, scrollView.contentOffset)
+        }
+
+        /// Exposed for post-animation reporting from `updateUIView`.
+        func parentTransform(_ scrollView: UIScrollView) {
+            reportTransform(scrollView)
         }
 
         // MARK: Cursor
