@@ -61,7 +61,7 @@ struct SketchDetailView: View {
     }
 
     private var canvasStack: some View {
-        ZStack {
+        ZStack(alignment: .topLeading) {
             // Paper, text blocks, and remote cursor live in canvas CONTENT
             // coordinates; these transforms keep them glued to the ink at any
             // zoom/pan. Paper sits under the ink; text + cursor above it.
