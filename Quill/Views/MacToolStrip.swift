@@ -2,94 +2,132 @@
 import SwiftUI
 import PencilKit
 
-/// Mac drawing tools. Catalyst's PKToolPicker palette is unreliable (and its
-/// first-responder machinery was implicated in the input-hijack bug), so the
-/// Mac builds its own strip: tool, color, and width — all in the pen-free bar
-/// region. Selection persists across launches.
+/// Mac tool switcher (mock 4a): a segmented control of five icon tools —
+/// Pen, Marker, Pencil, Eraser, and **Text** — plus ink colors and a width
+/// slider. Text is a tool, not a mode: selecting it drives `textActive`
+/// (the old `editingTexts`), and leaving text mode from outside (Esc) snaps
+/// the switcher back to Pen. Selection persists across launches.
 struct MacToolStrip: View {
     @Binding var tool: PKTool
+    @Binding var textActive: Bool
 
     @AppStorage("macTool") private var toolName = "pen"
     @AppStorage("macColor") private var colorName = "black"
     @AppStorage("macWidth") private var width = 4.0
 
-    private static let inks: [(name: String, ink: PKInkingTool.InkType, icon: String)] = [
-        ("pen", .pen, "pencil.tip"),
-        ("marker", .marker, "paintbrush.pointed.fill"),
-        ("pencil", .pencil, "pencil"),
-    ]
-
-    private static let colors: [(name: String, color: UIColor)] = [
-        ("black", .label), ("blue", .systemBlue), ("red", .systemRed),
-        ("green", .systemGreen), ("orange", .systemOrange), ("purple", .systemPurple),
+    private static let inks: [(name: String, ink: PKInkingTool.InkType, icon: String, help: String)] = [
+        ("pen", .pen, "pencil.tip", "Pen"),
+        ("marker", .marker, "paintbrush.pointed.fill", "Marker"),
+        ("pencil", .pencil, "pencil", "Pencil"),
     ]
 
     var body: some View {
-        HStack(spacing: 10) {
-            // Tools
-            HStack(spacing: 2) {
-                ForEach(Self.inks, id: \.name) { ink in
-                    toolButton(icon: ink.icon, selected: toolName == ink.name) {
-                        toolName = ink.name
-                        rebuildTool()
-                    }
-                }
-                toolButton(icon: "eraser", selected: toolName == "eraser") {
-                    toolName = "eraser"
-                    rebuildTool()
-                }
-            }
+        HStack(spacing: 12) {
+            switcher
 
-            Divider().frame(height: 16)
+            colorSquares
+                .opacity(textActive ? 0.35 : 1)
+                .disabled(textActive)
+                .animation(.easeInOut(duration: 0.15), value: textActive)
 
-            // Colors
-            HStack(spacing: 9) {
-                ForEach(Self.colors, id: \.name) { entry in
-                    Button {
-                        colorName = entry.name
-                        if toolName == "eraser" { toolName = "pen" } // picking a color implies inking
-                        rebuildTool()
-                    } label: {
-                        Circle()
-                            .fill(Color(uiColor: entry.color))
-                            .frame(width: 22, height: 22)
-                            .overlay(Circle().stroke(Color.accentColor,
-                                                     lineWidth: colorName == entry.name ? 2.5 : 0))
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-
-            Divider().frame(height: 22)
-
-            // Width
             Slider(value: $width, in: 1...24, step: 1) { editing in
-                if !editing { rebuildTool() }
+                if !editing { apply() }
             }
-            .frame(width: 130)
+            .tint(Color(uiColor: selectedUIColor))
+            .frame(width: 110)
+            .opacity(textActive ? 0.35 : 1)
+            .disabled(textActive)
+            .animation(.easeInOut(duration: 0.15), value: textActive)
         }
-        .onAppear { rebuildTool() }
+        .onAppear { apply() }
+        .onChange(of: textActive) { _, active in
+            // Esc (or any outside exit) while the Text tool is selected snaps
+            // the switcher back to Pen.
+            if !active && toolName == "text" {
+                toolName = "pen"
+                apply()
+            }
+        }
     }
 
-    private func toolButton(icon: String, selected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+    // MARK: - Segmented switcher
+
+    private var switcher: some View {
+        HStack(spacing: 1) {
+            ForEach(Self.inks, id: \.name) { ink in
+                segment(icon: ink.icon, name: ink.name, help: ink.help)
+            }
+            segment(icon: "eraser", name: "eraser", help: "Eraser")
+            segment(icon: "character.cursor.ibeam", name: "text", help: "Text")
+        }
+        .padding(2)
+        .background(QuillTheme.hairlineInner, in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func segment(icon: String, name: String, help: String) -> some View {
+        let selected = toolName == name
+        let isText = name == "text"
+        return Button {
+            toolName = name
+            apply()
+        } label: {
             Image(systemName: icon)
-                .font(.system(size: 19, weight: .medium))
-                .frame(width: 42, height: 36)
-                .background(selected ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear),
-                            in: RoundedRectangle(cornerRadius: 8))
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(selected && isText ? .white : QuillTheme.ink)
+                .frame(width: 36, height: 28)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(selected ? (isText ? QuillTheme.accent : QuillTheme.surface) : .clear)
+                        .shadow(color: selected && !isText ? .black.opacity(0.12) : .clear,
+                                radius: 1.5, y: 0.5)
+                )
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .help(help)
     }
 
-    private func rebuildTool() {
+    // MARK: - Colors (17pt squares, accent ring when selected)
+
+    private var colorSquares: some View {
+        HStack(spacing: 7) {
+            ForEach(QuillTheme.inkPalette, id: \.name) { entry in
+                Button {
+                    colorName = entry.name
+                    // Picking a color while Eraser/Text is active implies inking.
+                    if toolName == "eraser" || toolName == "text" { toolName = "pen" }
+                    apply()
+                } label: {
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(Color(uiColor: entry.ui))
+                        .frame(width: 17, height: 17)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6.5)
+                                .stroke(QuillTheme.accent, lineWidth: 1.5)
+                                .padding(-3.5)
+                                .opacity(colorName == entry.name ? 1 : 0)
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 4) // room for the selection ring
+    }
+
+    // MARK: - Apply
+
+    private var selectedUIColor: UIColor {
+        QuillTheme.inkPalette.first { $0.name == colorName }?.ui ?? .label
+    }
+
+    private func apply() {
+        textActive = toolName == "text"
         if toolName == "eraser" {
             tool = PKEraserTool(.vector)
-            return
+        } else if toolName != "text" {
+            let ink = Self.inks.first { $0.name == toolName }?.ink ?? .pen
+            tool = PKInkingTool(ink, color: selectedUIColor, width: width)
         }
-        let ink = Self.inks.first { $0.name == toolName }?.ink ?? .pen
-        let color = Self.colors.first { $0.name == colorName }?.color ?? .label
-        tool = PKInkingTool(ink, color: color, width: width)
     }
 }
 #endif

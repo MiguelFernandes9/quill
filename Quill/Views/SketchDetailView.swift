@@ -40,23 +40,22 @@ struct SketchDetailView: View {
         // exist under the controls. Dedicated top bar; canvas starts below it.
         VStack(spacing: 0) {
             macTopBar
-            Divider()
+            QuillTheme.hairline.frame(height: 1)
             canvasStack
         }
-        .background(Color(uiColor: .systemBackground))
+        .background(QuillTheme.background)
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         #else
-        canvasStack
-            .navigationTitle(sketch.title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) { textModeButton }
-                ToolbarItem(placement: .primaryAction) { paperMenu }
-                if connectivity.peerOpenSketchID == sketch.id {
-                    ToolbarItem(placement: .primaryAction) { presenceBadge }
-                }
-            }
+        // iPad (mocks 2b/4b): same pen-free custom bar pattern, touch-sized.
+        VStack(spacing: 0) {
+            iPadTopBar
+            QuillTheme.hairline.frame(height: 1)
+            canvasStack
+        }
+        .background(QuillTheme.background)
+        .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         #endif
     }
 
@@ -138,35 +137,37 @@ struct SketchDetailView: View {
     }
 
     #if targetEnvironment(macCatalyst)
-    /// Zoom out / reset / in. iPad zooms by pinching; the Mac gets buttons
-    /// (trackpad pinch works too).
+    /// Zoom out / reset / in (mock 4a: white bg, hairline, tabular numerals).
+    /// iPad zooms by pinching; the Mac gets buttons (trackpad pinch works too).
     private var zoomControls: some View {
         HStack(spacing: 0) {
             Button {
                 requestZoom(step: -0.5)
             } label: {
                 Image(systemName: "minus.magnifyingglass")
-                    .font(.system(size: 17))
-                    .frame(width: 38, height: 34)
+                    .font(.system(size: 14))
+                    .frame(width: 32, height: 30)
             }
             Button {
                 requestZoomReset()
             } label: {
                 Text("\(Int((canvasScale * 100).rounded()))%")
-                    .font(.subheadline.monospacedDigit().weight(.medium))
-                    .frame(minWidth: 56)
+                    .font(.system(size: 12.5, weight: .medium).monospacedDigit())
+                    .frame(minWidth: 48)
             }
             .help("Reset zoom")
             Button {
                 requestZoom(step: 0.5)
             } label: {
                 Image(systemName: "plus.magnifyingglass")
-                    .font(.system(size: 17))
-                    .frame(width: 38, height: 34)
+                    .font(.system(size: 14))
+                    .frame(width: 32, height: 30)
             }
         }
         .buttonStyle(.plain)
-        .background(Color(uiColor: .quaternarySystemFill), in: RoundedRectangle(cornerRadius: 8))
+        .foregroundStyle(QuillTheme.secondaryText)
+        .background(QuillTheme.surface, in: RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(QuillTheme.hairline, lineWidth: 1))
     }
 
     private func requestZoom(step: CGFloat) {
@@ -189,80 +190,37 @@ struct SketchDetailView: View {
         connectivity.sendTexts(texts)
     }
 
-    private var textModeButton: some View {
-        Button {
-            if editingTexts { commitTexts() } // leaving text mode commits
-            editingTexts.toggle()
-        } label: {
-            Image(systemName: editingTexts ? "pencil.tip.crop.circle" : "textformat")
-        }
-        .help(editingTexts ? "Back to drawing" : "Add and edit text")
+    /// Section name for the bar's muted subtitle.
+    private var sectionName: String? {
+        sketch.sectionID.flatMap { store.section($0)?.name }
     }
 
-    #if targetEnvironment(macCatalyst)
-    /// Pen-free bar: the canvas lives entirely below it, so PencilKit's input
-    /// machinery can never claim clicks on these controls. One compact,
-    /// flat, Mac-style row: back · tools · zoom · presence · text · paper.
-    private var macTopBar: some View {
-        HStack(spacing: 10) {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "chevron.backward")
-                    .font(.system(size: 19, weight: .semibold))
-                    .frame(width: 42, height: 36)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            // Esc: deselect a focused text block first; else go back.
-            .background(
-                Button("") {
-                    if hasFocusedBlock {
-                        deselectSignal += 1
-                    } else {
-                        dismiss()
-                    }
-                }
-                .keyboardShortcut(.cancelAction)
-                .opacity(0)
-                .accessibilityHidden(true)
-            )
-
-            Divider().frame(height: 22)
-
-            MacToolStrip(tool: $macTool)
-                .disabled(editingTexts)
-                .opacity(editingTexts ? 0.4 : 1)
-
-            Spacer(minLength: 12)
-
-            zoomControls
-
-            if connectivity.peerOpenSketchID == sketch.id {
-                Image(systemName: "person.fill")
-                    .font(.system(size: 18))
-                    .foregroundStyle(.green)
-                    .help("\(connectivity.peerName ?? "Peer") is in this pad")
-            }
-
-            textModeButton
-                .buttonStyle(.plain)
-                .font(.system(size: 19, weight: .medium))
-                .frame(width: 42, height: 36)
-                .background(editingTexts ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear),
-                            in: RoundedRectangle(cornerRadius: 8))
-
-            paperMenu
-                .font(.system(size: 19, weight: .medium))
-                .frame(width: 42, height: 36)
-                .contentShape(Rectangle())
+    /// Green presence chip (mock 4a/2b): shown when the peer is in this pad.
+    private var presenceChip: some View {
+        HStack(spacing: 5) {
+            Image(systemName: "eye.fill").font(.system(size: 10))
+            Text(peerChipText)
+                .font(.system(size: 12 + QuillTheme.typeBump, weight: .medium))
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .foregroundStyle(QuillTheme.greenChipText)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 5)
+        .background(QuillTheme.greenChipBackground, in: RoundedRectangle(cornerRadius: QuillTheme.chipRadius))
+        .overlay(RoundedRectangle(cornerRadius: QuillTheme.chipRadius)
+            .stroke(QuillTheme.greenChipBorder, lineWidth: 1))
+        .help("\(PeerLabel.clean(connectivity.peerName) ?? "Peer") is in this pad")
     }
-    #endif
 
-    private var paperMenu: some View {
+    private var peerChipText: String {
+        #if targetEnvironment(macCatalyst)
+        PeerLabel.short(connectivity.peerName)
+        #else
+        "\(PeerLabel.short(connectivity.peerName)) is here"
+        #endif
+    }
+
+    /// Paper chip: icon + current style name, opens the style menu.
+    private var paperChip: some View {
         Menu {
             ForEach(PaperStyle.allCases, id: \.self) { style in
                 Button {
@@ -272,21 +230,159 @@ struct SketchDetailView: View {
                 }
             }
         } label: {
-            Image(systemName: "doc.text")
+            HStack(spacing: 5) {
+                Image(systemName: paper.symbolName).font(.system(size: 12))
+                Text(paper.label)
+                    .font(.system(size: 12 + QuillTheme.typeBump, weight: .medium))
+            }
+            .foregroundStyle(QuillTheme.secondaryText)
+            .padding(.horizontal, 9)
+            .frame(height: QuillTheme.rowHeight >= 44 ? 38 : 30)
+            .background(QuillTheme.surface, in: RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(QuillTheme.hairline, lineWidth: 1))
         }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .opacity(editingTexts ? 0.35 : 1)
+        .disabled(editingTexts)
+        .animation(.easeInOut(duration: 0.15), value: editingTexts)
+        .help("Paper style")
     }
+
+    #if targetEnvironment(macCatalyst)
+    /// Pen-free bar (mock 4a): the canvas lives entirely below it, so
+    /// PencilKit's input machinery can never claim clicks on these controls.
+    /// back · title · section · | · tool switcher · colors · width · zoom ·
+    /// presence · paper.
+    private var macTopBar: some View {
+        HStack(spacing: 10) {
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "chevron.backward")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(QuillTheme.ink)
+                    .frame(width: 34, height: 30)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .background(escHandler)
+
+            Text(sketch.title)
+                .font(.system(size: 13.5, weight: .semibold))
+                .foregroundStyle(QuillTheme.ink)
+                .lineLimit(1)
+            if let sectionName {
+                Text(sectionName)
+                    .font(.system(size: 12))
+                    .foregroundStyle(QuillTheme.muted)
+                    .lineLimit(1)
+            }
+
+            QuillTheme.hairline.frame(width: 1, height: 22)
+
+            MacToolStrip(tool: $macTool, textActive: $editingTexts)
+
+            Spacer(minLength: 12)
+
+            zoomControls
+
+            if connectivity.peerOpenSketchID == sketch.id {
+                presenceChip
+            }
+
+            paperChip
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(QuillTheme.background)
+    }
+
+    /// Esc chain: deselect a focused block → exit the Text tool → go back.
+    private var escHandler: some View {
+        Button("") {
+            if hasFocusedBlock {
+                deselectSignal += 1
+            } else if editingTexts {
+                commitTexts()
+                editingTexts = false // MacToolStrip snaps back to Pen
+            } else {
+                dismiss()
+            }
+        }
+        .keyboardShortcut(.cancelAction)
+        .opacity(0)
+        .accessibilityHidden(true)
+    }
+    #else
+    /// iPad bar (mocks 2b/4b): accent back, centered title, presence chip,
+    /// Text-tool button, paper chip. Touch-sized; hairline bottom.
+    private var iPadTopBar: some View {
+        ZStack {
+            Text(sketch.title)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(QuillTheme.ink)
+                .lineLimit(1)
+
+            HStack(spacing: 10) {
+                Button {
+                    dismiss()
+                } label: {
+                    HStack(spacing: 3) {
+                        Image(systemName: "chevron.backward")
+                            .font(.system(size: 15, weight: .semibold))
+                        Text("Pads").font(.system(size: 15))
+                    }
+                    .foregroundStyle(QuillTheme.accent)
+                    .frame(height: 44)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+
+                if connectivity.peerOpenSketchID == sketch.id {
+                    presenceChip
+                }
+
+                textToolButton
+
+                paperChip
+            }
+        }
+        .padding(.horizontal, 12)
+        .frame(height: 50)
+        .background(QuillTheme.background)
+    }
+
+    /// iPad Text tool (mock 4b): 44×38, accent bg + soft ring when active.
+    private var textToolButton: some View {
+        Button {
+            if editingTexts { commitTexts() } // leaving the tool commits
+            editingTexts.toggle()
+        } label: {
+            Image(systemName: "character.cursor.ibeam")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(editingTexts ? .white : QuillTheme.ink)
+                .frame(width: 44, height: 38)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(editingTexts ? QuillTheme.accent : QuillTheme.surface)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(editingTexts ? QuillTheme.accentSoft : QuillTheme.hairline,
+                                lineWidth: editingTexts ? 3 : 1)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+    #endif
 
     private func setPaper(_ style: PaperStyle) {
         paper = style
         store.setPaper(sketch.id, style,
                        bumpVersion: connectivity.shouldBumpVersion(for: sketch.id))
         connectivity.sendPaper(style)
-    }
-
-    private var presenceBadge: some View {
-        Label(connectivity.peerName ?? "Peer", systemImage: "person.fill")
-            .labelStyle(.titleAndIcon)
-            .font(.caption)
-            .foregroundStyle(.green)
     }
 }
