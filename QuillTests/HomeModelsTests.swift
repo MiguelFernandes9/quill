@@ -88,4 +88,15 @@ final class HomeModelsTests: XCTestCase {
         XCTAssertNotNil(empty)
         XCTAssertNil(ThumbnailStore.render(drawingData: Data(), size: .zero))
     }
+
+    func testRenderIncludesTextBlocks() throws {
+        // Text-only pad: bounds derive from the block, and the rendered image
+        // differs from the blank render (the text was actually drawn).
+        let blocks = [TextBlock(text: "hello thumbnail", x: 40, y: 40, size: 20)]
+        let size = CGSize(width: 160, height: 110)
+        let withText = try XCTUnwrap(ThumbnailStore.render(drawingData: Data(),
+                                                           texts: blocks, size: size))
+        let blank = try XCTUnwrap(ThumbnailStore.render(drawingData: Data(), size: size))
+        XCTAssertNotEqual(withText.pngData(), blank.pngData())
+    }
 }

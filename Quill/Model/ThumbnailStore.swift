@@ -55,19 +55,43 @@ final class ThumbnailStore: ObservableObject {
         cachedStamp == digest.updatedAt
     }
 
-    /// Render a drawing over white at thumbnail scale. Static + synchronous
-    /// for testability; instance callers run it off-main.
-    static func render(drawingData: Data, size: CGSize) -> UIImage? {
+    /// Render a pad's ink AND text blocks at thumbnail scale. Static +
+    /// synchronous for testability; instance callers run it off-main.
+    static func render(drawingData: Data, texts: [TextBlock] = [], size: CGSize) -> UIImage? {
         guard size.width > 0, size.height > 0 else { return nil }
         let drawing = (try? PKDrawing(data: drawingData)) ?? PKDrawing()
-        // Fit the used portion of the drawing (or a default viewport when
-        // empty) into the thumbnail, preserving aspect.
-        let bounds = drawing.bounds.isEmpty
+
+        // Content bounds: ink plus every text block's estimated frame.
+        var content = drawing.bounds
+        for block in texts where !block.text.isEmpty {
+            let font = UIFont.systemFont(ofSize: block.size)
+            let est = (block.text as NSString).boundingRect(
+                with: CGSize(width: 360, height: CGFloat.greatestFiniteMagnitude),
+                options: [.usesLineFragmentOrigin],
+                attributes: [.font: font], context: nil)
+            let frame = CGRect(x: block.x, y: block.y, width: est.width, height: est.height)
+            content = content.isEmpty ? frame : content.union(frame)
+        }
+        let bounds = content.isEmpty
             ? CGRect(x: 0, y: 0, width: size.width * 3, height: size.height * 3)
-            : drawing.bounds.insetBy(dx: -12, dy: -12)
-        let scale = min(size.width / bounds.width, size.height / bounds.height)
-        let image = drawing.image(from: bounds, scale: max(scale, 0.05))
-        return image
+            : content.insetBy(dx: -12, dy: -12)
+        let scale = max(min(size.width / bounds.width, size.height / bounds.height), 0.05)
+
+        let inkImage = drawing.image(from: bounds, scale: scale)
+        let target = CGSize(width: bounds.width * scale, height: bounds.height * scale)
+        return UIGraphicsImageRenderer(size: target).image { _ in
+            inkImage.draw(in: CGRect(origin: .zero, size: target))
+            for block in texts where !block.text.isEmpty {
+                let font = UIFont.systemFont(ofSize: block.size * scale)
+                (block.text as NSString).draw(
+                    in: CGRect(x: (block.x - bounds.minX) * scale,
+                               y: (block.y - bounds.minY) * scale,
+                               width: 360 * scale,
+                               height: target.height),
+                    withAttributes: [.font: font,
+                                     .foregroundColor: UIColor(hex: 0x16161A)])
+            }
+        }
     }
 
     private func renderIfNeeded(_ digest: SketchDigest, key: Key, size: CGSize) {
@@ -75,9 +99,10 @@ final class ThumbnailStore: ObservableObject {
         guard !inFlight.contains(key) else { return }
         inFlight.insert(key)
         let data = store.loadDrawing(digest.id)
+        let texts = store.loadTexts(digest.id)
         let stamp = digest.updatedAt
         renderQueue.async { [weak self] in
-            let image = Self.render(drawingData: data, size: size)
+            let image = Self.render(drawingData: data, texts: texts, size: size)
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.inFlight.remove(key)

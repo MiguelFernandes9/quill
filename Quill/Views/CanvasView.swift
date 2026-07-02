@@ -57,18 +57,17 @@ struct CanvasView: UIViewRepresentable {
         }
         if let request = zoomRequest, request.id != context.coordinator.lastZoomRequestID {
             context.coordinator.lastZoomRequestID = request.id
-            // Defer: setZoomScale fires the scroll delegate synchronously, and
-            // updateUIView runs DURING SwiftUI's view update — reporting the
-            // transform from here would modify state mid-update (undefined
-            // behavior warning, flaky zoom).
+            // Defer off the view update (setZoomScale fires the scroll
+            // delegate synchronously). Unanimated: the delegate reports
+            // immediately, so ink, paper, and text overlays change together —
+            // animated zoom left overlays lagging behind the ink. NOTE: the
+            // coordinator is captured directly; SwiftUI's `context` must not
+            // escape updateUIView.
+            let coordinator = context.coordinator
             DispatchQueue.main.async { [weak canvas] in
-                canvas?.setZoomScale(request.scale, animated: true)
-            }
-            // Animated zoom doesn't reliably tick the delegate — report once
-            // the animation lands so the mirrored scale/offset stay in sync.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak canvas] in
                 guard let canvas else { return }
-                context.coordinator.parentTransform(canvas)
+                canvas.setZoomScale(request.scale, animated: false)
+                coordinator.parentTransform(canvas)
             }
         }
     }
