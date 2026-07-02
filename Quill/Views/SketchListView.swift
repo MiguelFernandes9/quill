@@ -1,12 +1,19 @@
 import SwiftUI
 
-/// Notes-like home screen: pads grouped into sections (folders), with
-/// create / rename / delete / move, peer-connection status, and an eye badge
-/// on the pad the other device currently has open.
+/// Studio home screen: sidebar (search / nav / folders / connection status)
+/// beside the pad grid, search results, or the empty state. Mocks 1b/2a/2c.
 struct SketchListView: View {
     @EnvironmentObject private var store: SketchStore
     @EnvironmentObject private var connectivity: ConnectivityManager
 
+    /// Persisted sidebar selection (replaces the old collapsed-cards state).
+    @AppStorage("sidebarSelection") private var selectionRaw = "all"
+    @State private var searchText = ""
+    /// Search results compute from this ~250ms behind `searchText` —
+    /// `searchMatches` reads text sidecars from disk, so no per-keystroke I/O.
+    @State private var debouncedQuery = ""
+
+    // Dialogs
     @State private var renamingSketch: SketchDigest?
     @State private var renameText = ""
     @State private var movingSketch: SketchDigest?
@@ -14,40 +21,41 @@ struct SketchListView: View {
     @State private var sectionNameText = ""
     @State private var creatingSection = false
 
-    /// Collapsed section ids (plus "unsorted"), persisted across launches.
-    @AppStorage("collapsedSections") private var collapsedCSV = ""
+    /// Programmatic navigation — grid cards are plain buttons.
+    @State private var path: [SketchDigest] = []
 
-    @State private var searchText = ""
+    /// Derived once; the four consumers below all read this.
+    private var currentSelection: SidebarSelection {
+        SidebarSelection(rawValue: selectionRaw)
+    }
+
+    private var selection: Binding<SidebarSelection> {
+        Binding(get: { SidebarSelection(rawValue: selectionRaw) },
+                set: { selectionRaw = $0.rawValue })
+    }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if store.sketches.isEmpty && store.sections.isEmpty {
-                    emptyState
-                } else {
-                    list
-                }
+        NavigationStack(path: $path) {
+            HStack(spacing: 0) {
+                SidebarView(selection: selection,
+                            searchText: $searchText,
+                            onNewFolder: { sectionNameText = ""; creatingSection = true },
+                            onNewPadIn: { newPad(in: $0) },
+                            onRenameFolder: { section in
+                                sectionNameText = section.name
+                                renamingSection = section
+                            },
+                            onDeleteFolder: deleteSection)
+                mainArea
             }
+            .task(id: searchText) {
+                try? await Task.sleep(nanoseconds: 250_000_000)
+                if !Task.isCancelled { debouncedQuery = searchText }
+            }
+            .background(QuillTheme.background)
             .navigationTitle("")
+            .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: SketchDigest.self) { SketchDetailView(sketch: $0) }
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) { peerBadge }
-                ToolbarItem(placement: .principal) {
-                    searchField
-                        .frame(minWidth: 220, maxWidth: 420)
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    Button { createPad(in: nil) } label: { Image(systemName: "square.and.pencil") }
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        sectionNameText = ""
-                        creatingSection = true
-                    } label: {
-                        Image(systemName: "folder.badge.plus")
-                    }
-                }
-            }
             .alert("Pad name", isPresented: bind($renamingSketch)) {
                 TextField("Title", text: $renameText)
                 Button("Cancel", role: .cancel) { renamingSketch = nil }
@@ -59,16 +67,17 @@ struct SketchListView: View {
                     renamingSketch = nil
                 }
             }
-            .alert("New section", isPresented: $creatingSection) {
+            .alert("New folder", isPresented: $creatingSection) {
                 TextField("Name", text: $sectionNameText)
                 Button("Cancel", role: .cancel) {}
                 Button("Create") {
                     guard !sectionNameText.isEmpty else { return }
-                    store.createSection(name: sectionNameText)
+                    let section = store.createSection(name: sectionNameText)
                     connectivity.announceLibrary()
+                    selectionRaw = SidebarSelection.section(section.id).rawValue
                 }
             }
-            .alert("Rename section", isPresented: bind($renamingSection)) {
+            .alert("Rename folder", isPresented: bind($renamingSection)) {
                 TextField("Name", text: $sectionNameText)
                 Button("Cancel", role: .cancel) { renamingSection = nil }
                 Button("Save") {
@@ -83,209 +92,72 @@ struct SketchListView: View {
                 ForEach(store.sections) { section in
                     Button(section.name) { move(to: section.id) }
                 }
-                Button("Unfiled") { move(to: nil) }
+                Button("Unsorted") { move(to: nil) }
                 Button("Cancel", role: .cancel) { movingSketch = nil }
             }
         }
     }
 
-    // MARK: - List
-
-    /// Custom search field — the system `.searchable` control renders
-    /// misaligned on Catalyst, so we own the layout.
-    private var searchField: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 7) {
-            Image(systemName: "magnifyingglass")
-                .font(.body)
-                .foregroundStyle(.secondary)
-            TextField("Search pads and text", text: $searchText)
-                .textFieldStyle(.plain)
-                .font(.body)
-            if !searchText.isEmpty {
-                Button {
-                    searchText = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 7)
-        // White capsule bubble — same clean white as the toolbar buttons,
-        // no border/shadow tinting it. Fixed choice; do not restyle.
-        .background(Color(uiColor: .systemBackground), in: Capsule())
-    }
-
-    /// Each section is one rounded card: a folder row that expands in place to
-    /// reveal its pads, and collapses back to a closed card. While searching,
-    /// the cards give way to a flat result list (titles + text content match).
-    private var list: some View {
-        List {
-            if searchText.isEmpty {
-                sectionCard(key: "unsorted", icon: "tray", name: "Unsorted",
-                            section: nil,
-                            pads: store.sketches.filter { $0.sectionID == nil })
-                ForEach(store.sections) { section in
-                    sectionCard(key: section.id.uuidString, icon: "folder", name: section.name,
-                                section: section,
-                                pads: store.sketches.filter { $0.sectionID == section.id })
-                }
-            } else {
-                let results = store.search(searchText)
-                if results.isEmpty {
-                    Text("No matches")
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(results) { row(for: $0) }
-                }
-            }
-        }
-        #if !targetEnvironment(macCatalyst)
-        .listStyle(.insetGrouped) // rounded card per section
-        #endif
-    }
+    // MARK: - Main area
 
     @ViewBuilder
-    private func sectionCard(key: String, icon: String, name: String,
-                             section: SectionMetadata?, pads: [SketchDigest]) -> some View {
-        let expanded = !collapsedSet.contains(key)
-        Section {
-            folderRow(key: key, icon: icon, name: name, section: section,
-                      count: pads.count, expanded: expanded)
-            if expanded {
-                ForEach(pads) { row(for: $0) }
-            }
+    private var mainArea: some View {
+        if !searchText.trimmingCharacters(in: .whitespaces).isEmpty {
+            SearchResultsView(matches: store.searchMatches(debouncedQuery), onOpen: open)
+        } else if store.sketches.isEmpty {
+            EmptyHomeView(onNewPad: newPad)
+        } else {
+            PadGridView(title: gridTitle,
+                        pads: filteredPads,
+                        onNewPad: newPad,
+                        onOpen: open,
+                        onRename: { pad in
+                            renameText = pad.title
+                            renamingSketch = pad
+                        },
+                        onMove: { movingSketch = $0 },
+                        onDelete: deletePad)
         }
     }
 
-    private func folderRow(key: String, icon: String, name: String,
-                           section: SectionMetadata?, count: Int, expanded: Bool) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon)
-                .foregroundStyle(.tint)
-            Text(name)
-                .fontWeight(.semibold)
-            Spacer()
-            if let section {
-                Menu {
-                    Button {
-                        createPad(in: section.id)
-                    } label: {
-                        Label("New Pad Here", systemImage: "square.and.pencil")
-                    }
-                    Button {
-                        sectionNameText = section.name
-                        renamingSection = section
-                    } label: {
-                        Label("Rename", systemImage: "pencil")
-                    }
-                    Button(role: .destructive) {
-                        deleteSection(section)
-                    } label: {
-                        Label("Delete Section", systemImage: "trash")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                }
-                .buttonStyle(.borderless)
-            }
-            Text("\(count)")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Image(systemName: "chevron.right")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .rotationEffect(.degrees(expanded ? 90 : 0))
-        }
-        .contentShape(Rectangle())
-        .onTapGesture { toggle(key) }
-    }
-
-    private func toggle(_ key: String) {
-        withAnimation(.snappy) {
-            var set = collapsedSet
-            if set.contains(key) { set.remove(key) } else { set.insert(key) }
-            collapsedCSV = set.sorted().joined(separator: ",")
+    private var filteredPads: [SketchDigest] {
+        switch currentSelection {
+        case .all: return store.sketches
+        case .unsorted: return store.sketches.filter { $0.sectionID == nil }
+        case let .section(id): return store.sketches.filter { $0.sectionID == id }
         }
     }
 
-    private var collapsedSet: Set<String> {
-        Set(collapsedCSV.split(separator: ",").map(String.init))
-    }
-
-    /// Row with a platform-appropriate edit affordance:
-    /// Mac → right-click context menu; iPad → swipe actions.
-    @ViewBuilder
-    private func row(for sketch: SketchDigest) -> some View {
-        let link = NavigationLink(value: sketch) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(sketch.title).font(.body)
-                    Text(sketch.updatedAt, style: .relative)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                if connectivity.peerOpenSketchID == sketch.id {
-                    Spacer()
-                    Image(systemName: "eye.fill")
-                        .font(.caption)
-                        .foregroundStyle(.tint)
-                }
-            }
+    private var gridTitle: String {
+        switch currentSelection {
+        case .all: return "All pads"
+        case .unsorted: return "Unsorted"
+        case let .section(id): return store.section(id)?.name ?? "All pads"
         }
-        #if targetEnvironment(macCatalyst)
-        link.contextMenu {
-            renameButton(sketch)
-            moveButton(sketch)
-            deleteButton(sketch)
-        }
-        #else
-        link.swipeActions(edge: .trailing) {
-            deleteButton(sketch)
-            moveButton(sketch).tint(.orange)
-            renameButton(sketch).tint(.blue)
-        }
-        #endif
     }
 
     // MARK: - Actions
 
-    private func renameButton(_ sketch: SketchDigest) -> some View {
-        Button {
-            renameText = sketch.title
-            renamingSketch = sketch
-        } label: {
-            Label("Rename", systemImage: "pencil")
-        }
+    private func open(_ pad: SketchDigest) {
+        path.append(pad)
     }
 
-    private func moveButton(_ sketch: SketchDigest) -> some View {
-        Button {
-            movingSketch = sketch
-        } label: {
-            Label("Move…", systemImage: "folder")
+    private func newPad(in sectionID: UUID? = nil) {
+        let target: UUID?
+        if let sectionID {
+            target = sectionID
+        } else if case let .section(id) = currentSelection {
+            target = id
+        } else {
+            target = nil
         }
-    }
-
-    private func deleteButton(_ sketch: SketchDigest) -> some View {
-        Button(role: .destructive) {
-            store.delete(sketch.id)
-            connectivity.sendDelete(sketch.id)
-        } label: {
-            Label("Delete", systemImage: "trash")
-        }
-    }
-
-    private func createPad(in sectionID: UUID?) {
-        let meta = store.create(in: sectionID)
+        let meta = store.create(in: target)
         connectivity.announceLibrary()
-        // Name it right away (cancel keeps "Untitled").
         renameText = meta.title
         renamingSketch = meta.digest
     }
+
+    private func newPad() { newPad(in: nil) }
 
     private func move(to sectionID: UUID?) {
         if let id = movingSketch?.id {
@@ -295,34 +167,18 @@ struct SketchListView: View {
         movingSketch = nil
     }
 
+    private func deletePad(_ pad: SketchDigest) {
+        store.delete(pad.id)
+        connectivity.sendDelete(pad.id)
+    }
+
     private func deleteSection(_ section: SectionMetadata) {
         store.deleteSection(section.id)
         if let tomb = store.sectionTombstones[section.id] {
             connectivity.sendDeleteSection(section.id, versions: tomb.versions)
         }
-        connectivity.announceLibrary() // pads moved to unfiled
-    }
-
-    // MARK: - Chrome
-
-    private var emptyState: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "scribble.variable")
-                .font(.system(size: 44))
-                .foregroundStyle(.secondary)
-            Text("No sketches yet").font(.headline)
-            Text("Tap the pencil to start drawing.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    private var peerBadge: some View {
-        Image(systemName: connectivity.connectedPeers > 0 ? "person.2.fill" : "person.2")
-            .foregroundStyle(connectivity.connectedPeers > 0 ? Color.green : Color.secondary)
-            .accessibilityLabel(connectivity.connectedPeers > 0
-                                ? "\(connectivity.connectedPeers) connected"
-                                : "Not connected")
+        connectivity.announceLibrary() // pads moved to unsorted
+        if selectionRaw == section.id.uuidString { selectionRaw = "all" }
     }
 
     private func bind<T>(_ value: Binding<T?>) -> Binding<Bool> {

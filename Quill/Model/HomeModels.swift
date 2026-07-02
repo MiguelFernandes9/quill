@@ -82,6 +82,42 @@ func pairConflicts(_ digests: [SketchDigest]) -> (plain: [SketchDigest],
     return (plain, pairs)
 }
 
+// MARK: - Sidebar selection (persisted home filter)
+
+/// Which pads the main area shows (persisted as a raw string).
+enum SidebarSelection: Equatable {
+    case all
+    case unsorted
+    case section(UUID)
+
+    var rawValue: String {
+        switch self {
+        case .all: return "all"
+        case .unsorted: return "unsorted"
+        case let .section(id): return id.uuidString
+        }
+    }
+
+    init(rawValue: String) {
+        switch rawValue {
+        case "unsorted": self = .unsorted
+        default:
+            if let id = UUID(uuidString: rawValue) { self = .section(id) } else { self = .all }
+        }
+    }
+}
+
+// MARK: - Shared formatting
+
+enum HomeFormat {
+    /// "2h ago"-style relative dates for cards and conflict rows.
+    static let relative: RelativeDateTimeFormatter = {
+        let f = RelativeDateTimeFormatter()
+        f.unitsStyle = .abbreviated
+        return f
+    }()
+}
+
 // MARK: - Peer labels
 
 enum PeerLabel {
