@@ -70,8 +70,11 @@ struct TextBlockLayer: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .coordinateSpace(name: "textLayer") // stable space for drag deltas
         .allowsHitTesting(editing)
-        .onChange(of: focused) { _, value in
+        .onChange(of: focused) { old, value in
             hasFocusedBlock = value != nil
+            // Leaving a block commits its typed text — otherwise content typed
+            // without a trailing Return only syncs when text mode ends.
+            if old != nil { onChanged() }
         }
         .onChange(of: deselectSignal) { _, _ in
             focused = nil
