@@ -139,9 +139,10 @@ struct TextBlockLayer: View {
             if editing { focused = value.id }
         }
         // Drag anywhere on an UNFOCUSED block to move it (intuitive drag &
-        // drop); a focused block keeps its text interactions — move it with
-        // the strip's ✥ handle.
-        .gesture(dragGesture(for: block), including: isFocused ? .subviews : .all)
+        // drop) — high priority so the text field underneath can't claim the
+        // drag. A focused block keeps its text interactions (its Mac field
+        // editor owns that rect anyway) — move it with the strip's ✥ handle.
+        .highPriorityGesture(dragGesture(for: block), including: isFocused ? .subviews : .all)
         // Corner handles: drag to resize the block's box (A± = font size).
         .overlay {
             if editing && isFocused {
@@ -165,11 +166,16 @@ struct TextBlockLayer: View {
     /// a tall narrow one — the text wraps (and crops) to fit.
     private func resizeHandles(_ block: Binding<TextBlock>) -> some View {
         GeometryReader { geo in
+            // Handles sit OUTSIDE the box corners: a focused field (and its
+            // Mac field editor) owns events over the block's own rect, which
+            // silently ate on-corner handle drags — the strip below the block
+            // always worked for exactly this reason.
+            let out: CGFloat = handleSize / 2 + 6
             let corners: [(point: CGPoint, leading: Bool, top: Bool)] = [
-                (CGPoint(x: 0, y: 0), true, true),
-                (CGPoint(x: geo.size.width, y: 0), false, true),
-                (CGPoint(x: 0, y: geo.size.height), true, false),
-                (CGPoint(x: geo.size.width, y: geo.size.height), false, false),
+                (CGPoint(x: -out, y: -out), true, true),
+                (CGPoint(x: geo.size.width + out, y: -out), false, true),
+                (CGPoint(x: -out, y: geo.size.height + out), true, false),
+                (CGPoint(x: geo.size.width + out, y: geo.size.height + out), false, false),
             ]
             ForEach(corners.indices, id: \.self) { index in
                 let corner = corners[index]
