@@ -82,6 +82,10 @@ struct TextBlockLayer: View {
             .focused($focused, equals: value.id)
             .disabled(!editing)
             .onSubmit { onChanged() }
+            // Mac idiom doesn't relayout a vertical-axis field per keystroke —
+            // typed text stayed invisible until something else (A±) forced a
+            // layout pass. Content-sizing forces it every change.
+            .fixedSize(horizontal: false, vertical: true)
             .frame(minWidth: 60, maxWidth: 360, alignment: .leading)
             .padding(.horizontal, 11)
             .padding(.vertical, 7)

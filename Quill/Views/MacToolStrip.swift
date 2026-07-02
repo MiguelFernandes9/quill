@@ -14,6 +14,8 @@ struct MacToolStrip: View {
     @AppStorage("macTool") private var toolName = "pen"
     @AppStorage("macColor") private var colorName = "black"
     @AppStorage("macWidth") private var width = 4.0
+    /// "vector" removes whole strokes; "bitmap" erases pixels under the tip.
+    @AppStorage("macEraser") private var eraserMode = "vector"
 
     private static let inks: [(name: String, ink: PKInkingTool.InkType, icon: String, help: String)] = [
         ("pen", .pen, "pencil.tip", "Pen"),
@@ -24,6 +26,10 @@ struct MacToolStrip: View {
     var body: some View {
         HStack(spacing: 12) {
             switcher
+
+            if toolName == "eraser" {
+                eraserModeToggle
+            }
 
             colorSquares
                 .opacity(textActive ? 0.35 : 1)
@@ -87,6 +93,38 @@ struct MacToolStrip: View {
         .help(help)
     }
 
+    // MARK: - Eraser modes (only shown while the eraser is selected)
+
+    private var eraserModeToggle: some View {
+        HStack(spacing: 1) {
+            eraserSegment(mode: "vector", icon: "scribble", help: "Erase whole strokes")
+            eraserSegment(mode: "bitmap", icon: "circle.dotted", help: "Erase pixels")
+        }
+        .padding(2)
+        .background(QuillTheme.hairlineInner, in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func eraserSegment(mode: String, icon: String, help: String) -> some View {
+        Button {
+            eraserMode = mode
+            apply()
+        } label: {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(QuillTheme.ink)
+                .frame(width: 32, height: 28)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(eraserMode == mode ? QuillTheme.surface : .clear)
+                        .shadow(color: eraserMode == mode ? .black.opacity(0.12) : .clear,
+                                radius: 1.5, y: 0.5)
+                )
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
+    }
+
     // MARK: - Colors (17pt squares, accent ring when selected)
 
     private var colorSquares: some View {
@@ -123,7 +161,9 @@ struct MacToolStrip: View {
     private func apply() {
         textActive = toolName == "text"
         if toolName == "eraser" {
-            tool = PKEraserTool(.vector)
+            tool = eraserMode == "bitmap"
+                ? PKEraserTool(.bitmap, width: max(width * 3, 12))
+                : PKEraserTool(.vector)
         } else if toolName != "text" {
             let ink = Self.inks.first { $0.name == toolName }?.ink ?? .pen
             tool = PKInkingTool(ink, color: selectedUIColor, width: width)

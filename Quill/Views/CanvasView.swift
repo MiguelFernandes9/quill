@@ -57,11 +57,16 @@ struct CanvasView: UIViewRepresentable {
         }
         if let request = zoomRequest, request.id != context.coordinator.lastZoomRequestID {
             context.coordinator.lastZoomRequestID = request.id
-            canvas.setZoomScale(request.scale, animated: true)
-            // Programmatic animated zoom doesn't reliably tick the scroll
-            // delegate — report explicitly once the animation lands so the
-            // mirrored scale/offset (and the % label) stay in sync.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak canvas] in
+            // Defer: setZoomScale fires the scroll delegate synchronously, and
+            // updateUIView runs DURING SwiftUI's view update — reporting the
+            // transform from here would modify state mid-update (undefined
+            // behavior warning, flaky zoom).
+            DispatchQueue.main.async { [weak canvas] in
+                canvas?.setZoomScale(request.scale, animated: true)
+            }
+            // Animated zoom doesn't reliably tick the delegate — report once
+            // the animation lands so the mirrored scale/offset stay in sync.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak canvas] in
                 guard let canvas else { return }
                 context.coordinator.parentTransform(canvas)
             }
@@ -273,7 +278,14 @@ struct CanvasView: UIViewRepresentable {
         }
 
         private func reportTransform(_ scrollView: UIScrollView) {
-            parent.onTransform(scrollView.zoomScale, scrollView.contentOffset)
+            // Delegate callbacks can land inside a SwiftUI view update (e.g.
+            // when a layout pass adjusts contentOffset) — hop off it before
+            // touching the parent's @State.
+            let scale = scrollView.zoomScale
+            let offset = scrollView.contentOffset
+            DispatchQueue.main.async { [weak self] in
+                self?.parent.onTransform(scale, offset)
+            }
         }
 
         /// Exposed for post-animation reporting from `updateUIView`.
