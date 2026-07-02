@@ -128,6 +128,13 @@ final class ConnectivityManager: ObservableObject {
         send(.texts(sketchID: id, texts: texts))
     }
 
+    /// Whole-drawing replace: erase and undo aren't expressible as an append
+    /// delta, so they ship the full drawing (debounced canvas-side).
+    func sendDrawing(_ data: Data) {
+        guard peerIsWatching, let id = openSketchID else { return }
+        send(.drawing(sketchID: id, data: data))
+    }
+
     // MARK: - Outgoing (library)
 
     func sendDelete(_ id: UUID) {
@@ -193,6 +200,14 @@ final class ConnectivityManager: ObservableObject {
             store.saveTexts(sketchID, texts, bumpVersion: false)
             if sketchID == openSketchID {
                 canvasCommands.send((sketchID, .setTexts(texts)))
+            }
+
+        case let .drawing(sketchID, data):
+            // Persist first: .reloadDrawing's contract is "the store already
+            // has exactly this state" (the canvas won't re-save it).
+            store.saveDrawing(sketchID, data: data, bumpVersion: false)
+            if sketchID == openSketchID {
+                canvasCommands.send((sketchID, .reloadDrawing(data)))
             }
 
         case let .manifest(peerDeviceID, sketches, tombstones, sections, sectionTombstones):

@@ -27,6 +27,9 @@ struct CanvasView: UIViewRepresentable {
     var contentBottomHint: CGFloat = 0
     var onDrawingChanged: (Data) -> Void
     var onStrokeDelta: (Data) -> Void
+    /// The whole drawing, after a change an append delta can't carry (erase /
+    /// undo) — the peer replaces its copy.
+    var onDrawingResync: (Data) -> Void
     var onCursor: (CGPoint, Bool) -> Void
     /// Reports the canvas's live zoom + pan so sibling overlays (paper, text,
     /// remote cursor) can transform in lockstep.
@@ -128,6 +131,10 @@ struct CanvasView: UIViewRepresentable {
         private let saveSubject = PassthroughSubject<Void, Never>()
         private var dirty = false
 
+        /// Coalesces erase-driven full-drawing sends: a bitmap-eraser scrub
+        /// fires per-frame changes, and each resync ships the whole drawing.
+        private let resyncSubject = PassthroughSubject<Void, Never>()
+
         /// Number of strokes already broadcast/known; strokes beyond this count
         /// are new local additions to send.
         var lastSyncedCount = 0
@@ -177,6 +184,15 @@ struct CanvasView: UIViewRepresentable {
             saveSubject
                 .debounce(for: .seconds(2.0), scheduler: DispatchQueue.main)
                 .sink { [weak self] in self?.flushSave() }
+                .store(in: &cancellables)
+
+            // Ship the post-erase drawing once the scrub settles.
+            resyncSubject
+                .debounce(for: .seconds(0.35), scheduler: DispatchQueue.main)
+                .sink { [weak self] in
+                    guard let self, let canvas = self.canvas else { return }
+                    self.parent.onDrawingResync(canvas.drawing.dataRepresentation())
+                }
                 .store(in: &cancellables)
 
             // Never lose ink to a backgrounded app.
@@ -318,13 +334,21 @@ struct CanvasView: UIViewRepresentable {
             guard !isApplyingRemote else { return }
 
             let strokes = canvasView.drawing.strokes
-            // Broadcast new strokes FIRST so the network isn't blocked by disk.
-            if strokes.count > lastSyncedCount {
-                let newStrokes = Array(strokes[lastSyncedCount...])
+            // Broadcast FIRST so the network isn't blocked by disk. New pen
+            // strokes go as cheap append deltas; erases and undos replace the
+            // peer's whole drawing (StrokeSync explains why count alone can't
+            // tell — the bitmap eraser splits strokes).
+            switch StrokeSync.action(erasing: canvasView.tool is PKEraserTool,
+                                     count: strokes.count,
+                                     lastSynced: lastSyncedCount) {
+            case let .appendDelta(from):
+                let newStrokes = Array(strokes[from...])
                 parent.onStrokeDelta(PKDrawing(strokes: newStrokes).dataRepresentation())
+            case .resync:
+                resyncSubject.send(())
+            case .none:
+                break
             }
-            // On undo/erase the count drops; rebaseline (live erase isn't
-            // propagated — the full drawing reconciles on close).
             lastSyncedCount = strokes.count
 
             refreshInkBottom(canvasView) // writing near the bottom grows the page

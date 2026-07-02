@@ -95,6 +95,7 @@ struct SketchDetailView: View {
                                           bumpVersion: connectivity.shouldBumpVersion(for: sketch.id))
                     },
                     onStrokeDelta: { delta in connectivity.sendStrokes(delta) },
+                    onDrawingResync: { data in connectivity.sendDrawing(data) },
                     onCursor: { point, down in connectivity.sendCursor(point, down: down) },
                     onTransform: { scale, offset in
                         canvasScale = scale

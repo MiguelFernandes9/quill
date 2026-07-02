@@ -36,6 +36,11 @@ enum SyncMessage: Codable, Equatable {
     /// text edits while co-viewing (blocks are few — whole-array LWW is fine).
     case texts(sketchID: UUID, texts: [TextBlock])
 
+    /// The pad's whole drawing, replacing the receiver's copy. Sent after an
+    /// erase or undo while co-viewing — those aren't expressible as an
+    /// append delta (`.strokes`).
+    case drawing(sketchID: UUID, data: Data)
+
     /// A section deletion, for live propagation (offline peers get it via the
     /// manifest's sectionTombstones instead).
     case deleteSection(id: UUID, versions: VersionVector)
