@@ -63,14 +63,15 @@ enum QuillTheme {
     // MARK: - Metrics
 
     #if targetEnvironment(macCatalyst)
-    static let sidebarWidth: CGFloat = 240
+    static let sidebarWidth: CGFloat = 260
     static let cardRadius: CGFloat = 10
-    static let thumbnailHeight: CGFloat = 128
-    static let gridGap: CGFloat = 16
-    static let rowHeight: CGFloat = 36
+    static let thumbnailHeight: CGFloat = 148
+    static let gridGap: CGFloat = 18
+    static let rowHeight: CGFloat = 40
     /// Additive type-size adjustment. The mock's literal sizes read too small
-    /// at the Mac's 1:1 rendering — Miguel wants everything bigger.
-    static let typeBump: CGFloat = 2.5
+    /// at the Mac's 1:1 rendering — Miguel wants everything bigger. This is
+    /// THE size knob: raise it and the whole Mac UI scales up.
+    static let typeBump: CGFloat = 4
     #else
     static let sidebarWidth: CGFloat = 236
     static let cardRadius: CGFloat = 12
