@@ -76,12 +76,11 @@ struct SketchDetailView: View {
 
     private func canvasContent(viewportSize: CGSize) -> some View {
         ZStack(alignment: .topLeading) {
-            // Paper, text blocks, and remote cursor live in canvas CONTENT
-            // coordinates; these transforms keep them glued to the ink at any
-            // zoom/pan. Paper sits under the ink; text + cursor above it.
-            PaperBackgroundView(style: paper)
-                .scaleEffect(canvasScale, anchor: .topLeading)
-                .offset(x: -canvasOffset.x, y: -canvasOffset.y)
+            // Text blocks and the remote cursor live in canvas CONTENT
+            // coordinates; the transform below keeps them glued to the ink at
+            // any zoom/pan. Paper stays viewport-sized and phase-shifts its
+            // pattern instead — the growing page scrolls over endless paper.
+            PaperBackgroundView(style: paper, scale: canvasScale, offset: canvasOffset)
                 .ignoresSafeArea(edges: .bottom)
 
             if let initialDrawing {
@@ -90,6 +89,7 @@ struct SketchDetailView: View {
                     commands: commandRelay.eraseToAnyPublisher(),
                     tool: macToolOrNil,
                     zoomRequest: zoomRequest,
+                    contentBottomHint: textBottomEdge,
                     onDrawingChanged: { data in
                         store.saveDrawing(sketch.id, data: data,
                                           bumpVersion: connectivity.shouldBumpVersion(for: sketch.id))
@@ -142,6 +142,14 @@ struct SketchDetailView: View {
             }
             commandRelay.send(command)
         }
+    }
+
+    /// Lowest text-block edge (content coordinates) so the page grows past
+    /// blocks too, not only ink. Auto-height blocks are estimated — the page
+    /// only ever over-provisions, never clips.
+    private var textBottomEdge: CGFloat {
+        texts.map { CGFloat($0.y) + CGFloat($0.height ?? max(44, $0.size * 1.6)) }
+            .max() ?? 0
     }
 
     private var macToolOrNil: PKTool? {

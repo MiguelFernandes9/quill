@@ -10,8 +10,9 @@ import Combine
 /// - Applies peer commands: append strokes, or reload the whole drawing after
 ///   an open-refresh — both without echoing anything back.
 ///
-/// Zoom is locked to 1 and scrolling disabled, so view coordinates equal the
-/// shared drawing coordinate space across devices.
+/// The page grows downward as content approaches the bottom (`PageGrowth`),
+/// so notes scroll on forever; content coordinates are shared across devices
+/// unchanged (growth never moves existing ink).
 struct CanvasView: UIViewRepresentable {
 
     let initialDrawing: Data
@@ -21,6 +22,9 @@ struct CanvasView: UIViewRepresentable {
     var tool: PKTool?
     /// Programmatic zoom request (id increments per request; scale target).
     var zoomRequest: (id: Int, scale: CGFloat)?
+    /// Lowest content edge the page must contain besides ink (text blocks,
+    /// content coordinates) — the page grows past it like it does for ink.
+    var contentBottomHint: CGFloat = 0
     var onDrawingChanged: (Data) -> Void
     var onStrokeDelta: (Data) -> Void
     var onCursor: (CGPoint, Bool) -> Void
@@ -31,7 +35,7 @@ struct CanvasView: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     func makeUIView(context: Context) -> PKCanvasView {
-        let canvas = PKCanvasView()
+        let canvas = GrowingCanvasView()
         #if targetEnvironment(macCatalyst)
         canvas.drawingPolicy = .anyInput           // Mac pointer draws
         #else
@@ -58,12 +62,31 @@ struct CanvasView: UIViewRepresentable {
         }
 
         context.coordinator.attach(to: canvas)
+        context.coordinator.refreshInkBottom(canvas)
+
+        // Re-derive the page size on every layout pass: first appearance
+        // (bounds are zero in here), rotation, window resize, and every
+        // zoom/scroll frame (the target contentSize tracks zoomScale).
+        canvas.onLayout = { [weak canvas, weak coordinator = context.coordinator] in
+            guard let canvas, let coordinator else { return }
+            coordinator.updateContentSize(canvas)
+        }
         return canvas
     }
 
     func updateUIView(_ canvas: PKCanvasView, context: Context) {
         if let tool {
             canvas.tool = tool
+        }
+        if contentBottomHint != context.coordinator.bottomHint {
+            context.coordinator.bottomHint = contentBottomHint
+            // Defer: contentSize growth can move scroll internals; never
+            // mutate them inside a SwiftUI view update.
+            let coordinator = context.coordinator
+            DispatchQueue.main.async { [weak canvas] in
+                guard let canvas else { return }
+                coordinator.updateContentSize(canvas)
+            }
         }
         if let request = zoomRequest, request.id != context.coordinator.lastZoomRequestID {
             context.coordinator.lastZoomRequestID = request.id
@@ -111,6 +134,15 @@ struct CanvasView: UIViewRepresentable {
 
         /// Last applied programmatic zoom request (dedupes updateUIView calls).
         var lastZoomRequestID = 0
+
+        /// Page height in content coordinates (zoom 1). Grows via `PageGrowth`
+        /// as ink or text nears the bottom; never shrinks mid-session.
+        private var pageHeight: CGFloat = 0
+        /// Cached lowest ink edge (recomputing drawing.bounds per layout frame
+        /// would be O(strokes) during every scroll/zoom tick).
+        private var inkBottom: CGFloat = 0
+        /// Lowest text-block edge, pushed in from updateUIView.
+        var bottomHint: CGFloat = 0
 
         /// True while applying peer content, so the resulting change callback
         /// never rebroadcasts it (which would ping-pong forever).
@@ -250,6 +282,34 @@ struct CanvasView: UIViewRepresentable {
             isApplyingRemote = true
             canvas.drawing = drawing
             isApplyingRemote = false
+            refreshInkBottom(canvas) // peer ink can extend the page too
+        }
+
+        // MARK: Infinite page
+
+        /// Recompute the cached ink bottom from the drawing, then resize.
+        func refreshInkBottom(_ canvas: PKCanvasView) {
+            let bounds = canvas.drawing.bounds
+            inkBottom = bounds.isNull ? 0 : bounds.maxY
+            updateContentSize(canvas)
+        }
+
+        /// Apply the page-growth rule as the scroll view's content size
+        /// (scaled by the current zoom). Called from every layout pass, so it
+        /// must converge: it only writes when the target actually changes.
+        func updateContentSize(_ canvas: PKCanvasView) {
+            let viewport = canvas.bounds.size
+            guard viewport.width > 0, viewport.height > 0 else { return }
+            pageHeight = PageGrowth.height(current: pageHeight,
+                                           viewport: viewport.height,
+                                           contentBottom: max(inkBottom, bottomHint))
+            let scale = canvas.zoomScale
+            let target = CGSize(width: viewport.width * scale,
+                                height: pageHeight * scale)
+            if abs(canvas.contentSize.width - target.width) > 0.5 ||
+                abs(canvas.contentSize.height - target.height) > 0.5 {
+                canvas.contentSize = target
+            }
         }
 
         // MARK: Local drawing changes
@@ -266,6 +326,8 @@ struct CanvasView: UIViewRepresentable {
             // On undo/erase the count drops; rebaseline (live erase isn't
             // propagated — the full drawing reconciles on close).
             lastSyncedCount = strokes.count
+
+            refreshInkBottom(canvasView) // writing near the bottom grows the page
 
             dirty = true
             saveSubject.send(())
@@ -348,6 +410,18 @@ extension CanvasView.Coordinator: UIGestureRecognizerDelegate {
     func gestureRecognizer(_ g: UIGestureRecognizer,
                            shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
         true
+    }
+}
+
+/// `PKCanvasView` with a layout hook: `UIScrollViewDelegate` has no layout
+/// callback, but the growing page must be re-derived on first layout (bounds
+/// are zero during make), rotation, window resize, and every zoom frame.
+final class GrowingCanvasView: PKCanvasView {
+    var onLayout: (() -> Void)?
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        onLayout?()
     }
 }
 
