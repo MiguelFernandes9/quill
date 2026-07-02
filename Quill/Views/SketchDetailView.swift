@@ -133,6 +133,12 @@ struct SketchDetailView: View {
             if editingTexts { commitTexts() }
             connectivity.setOpenSketch(nil)
         }
+        // EVERY way out of text mode commits — Esc and the iPad button used
+        // to, but the Mac tool strip didn't, so Mac-typed text reached the
+        // peer only on pad close while iPad-typed text arrived immediately.
+        .onChange(of: editingTexts) { _, editing in
+            if !editing { commitTexts() }
+        }
         .onReceive(connectivity.canvasCommands) { id, command in
             guard id == sketch.id else { return }
             switch command {
@@ -227,24 +233,17 @@ struct SketchDetailView: View {
         sketch.sectionID.flatMap { store.section($0)?.name }
     }
 
-    /// Green presence chip (mock 4a/2b): shown when the peer is in this pad.
+    /// Green presence badge: eye icon only, shown when the peer is in this
+    /// pad (hover/long-press reveals who).
     private var presenceChip: some View {
-        HStack(spacing: 5) {
-            Image(systemName: "eye.fill").font(.system(size: 10))
-            Text(peerChipText)
-                .font(.system(size: 12 + QuillTheme.typeBump, weight: .medium))
-        }
-        .foregroundStyle(QuillTheme.greenChipText)
-        .padding(.horizontal, 9)
-        .padding(.vertical, 5)
-        .background(QuillTheme.greenChipBackground, in: RoundedRectangle(cornerRadius: QuillTheme.chipRadius))
-        .overlay(RoundedRectangle(cornerRadius: QuillTheme.chipRadius)
-            .stroke(QuillTheme.greenChipBorder, lineWidth: 1))
-        .help("\(PeerLabel.clean(connectivity.peerName) ?? "Peer") is in this pad")
-    }
-
-    private var peerChipText: String {
-        "\(PeerLabel.short(connectivity.peerName)) is here"
+        Image(systemName: "eye.fill")
+            .font(.system(size: 12))
+            .foregroundStyle(QuillTheme.greenChipText)
+            .frame(width: QuillTheme.rowHeight >= 44 ? 34 : 30,
+                   height: QuillTheme.rowHeight >= 44 ? 34 : 30)
+            .background(QuillTheme.greenChipBackground, in: Circle())
+            .overlay(Circle().stroke(QuillTheme.greenChipBorder, lineWidth: 1))
+            .help("\(PeerLabel.short(connectivity.peerName)) is in this pad")
     }
 
     /// Paper chip: icon + current style name, opens the style menu.
@@ -332,8 +331,7 @@ struct SketchDetailView: View {
             if hasFocusedBlock {
                 deselectSignal += 1
             } else if editingTexts {
-                commitTexts()
-                editingTexts = false // MacToolStrip snaps back to Pen
+                editingTexts = false // snaps MacToolStrip back to Pen; commits via onChange
             } else {
                 dismiss()
             }
@@ -386,8 +384,7 @@ struct SketchDetailView: View {
     /// iPad Text tool (mock 4b): 44×38, accent bg + soft ring when active.
     private var textToolButton: some View {
         Button {
-            if editingTexts { commitTexts() } // leaving the tool commits
-            editingTexts.toggle()
+            editingTexts.toggle() // leaving the tool commits via onChange
         } label: {
             Image(systemName: "character.cursor.ibeam")
                 .font(.system(size: 16, weight: .semibold))
