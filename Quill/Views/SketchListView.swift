@@ -112,10 +112,14 @@ struct SketchListView: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 7)
-        .background(Color(uiColor: .systemBackground), in: Capsule())
-        .overlay(Capsule().stroke(Color(uiColor: .separator), lineWidth: 0.5))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Color(uiColor: .quaternarySystemFill),
+                    in: RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color(uiColor: .separator).opacity(0.5), lineWidth: 0.5)
+        )
     }
 
     /// Each section is one rounded card: a folder row that expands in place to
