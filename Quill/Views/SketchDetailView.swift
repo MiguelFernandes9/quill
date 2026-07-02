@@ -103,6 +103,9 @@ struct SketchDetailView: View {
             .offset(x: -canvasOffset.x, y: -canvasOffset.y)
             .ignoresSafeArea(edges: .bottom)
         }
+        // Zoomed/panned overlay layers must never escape the canvas area and
+        // slide over the top bar.
+        .clipped()
         .onAppear {
             if initialDrawing == nil {
                 initialDrawing = store.loadDrawing(sketch.id)
@@ -143,27 +146,27 @@ struct SketchDetailView: View {
                 requestZoom(canvasScale - 0.5)
             } label: {
                 Image(systemName: "minus.magnifyingglass")
-                    .font(.system(size: 12))
-                    .frame(width: 24, height: 22)
+                    .font(.system(size: 14))
+                    .frame(width: 30, height: 28)
             }
             Button {
                 requestZoom(1)
             } label: {
                 Text("\(Int((canvasScale * 100).rounded()))%")
-                    .font(.caption.monospacedDigit())
-                    .frame(minWidth: 40)
+                    .font(.footnote.monospacedDigit().weight(.medium))
+                    .frame(minWidth: 48)
             }
             .help("Reset zoom")
             Button {
                 requestZoom(canvasScale + 0.5)
             } label: {
                 Image(systemName: "plus.magnifyingglass")
-                    .font(.system(size: 12))
-                    .frame(width: 24, height: 22)
+                    .font(.system(size: 14))
+                    .frame(width: 30, height: 28)
             }
         }
         .buttonStyle(.plain)
-        .background(Color(uiColor: .quaternarySystemFill), in: RoundedRectangle(cornerRadius: 6))
+        .background(Color(uiColor: .quaternarySystemFill), in: RoundedRectangle(cornerRadius: 7))
     }
 
     private func requestZoom(_ scale: CGFloat) {
@@ -199,8 +202,8 @@ struct SketchDetailView: View {
                 dismiss()
             } label: {
                 Image(systemName: "chevron.backward")
-                    .font(.system(size: 14, weight: .semibold))
-                    .frame(width: 28, height: 26)
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(width: 34, height: 30)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -218,7 +221,7 @@ struct SketchDetailView: View {
                 .accessibilityHidden(true)
             )
 
-            Divider().frame(height: 16)
+            Divider().frame(height: 18)
 
             MacToolStrip(tool: $macTool)
                 .disabled(editingTexts)
@@ -230,25 +233,25 @@ struct SketchDetailView: View {
 
             if connectivity.peerOpenSketchID == sketch.id {
                 Image(systemName: "person.fill")
-                    .font(.system(size: 13))
+                    .font(.system(size: 15))
                     .foregroundStyle(.green)
                     .help("\(connectivity.peerName ?? "Peer") is in this pad")
             }
 
             textModeButton
                 .buttonStyle(.plain)
-                .font(.system(size: 14, weight: .medium))
-                .frame(width: 28, height: 26)
+                .font(.system(size: 16, weight: .medium))
+                .frame(width: 34, height: 30)
                 .background(editingTexts ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear),
-                            in: RoundedRectangle(cornerRadius: 6))
+                            in: RoundedRectangle(cornerRadius: 7))
 
             paperMenu
-                .font(.system(size: 14, weight: .medium))
-                .frame(width: 28, height: 26)
+                .font(.system(size: 16, weight: .medium))
+                .frame(width: 34, height: 30)
                 .contentShape(Rectangle())
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 7)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
     }
     #endif
 

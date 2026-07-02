@@ -261,6 +261,10 @@ struct CanvasView: UIViewRepresentable {
             reportTransform(scrollView)
         }
 
+        func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) {
+            reportTransform(scrollView) // final value after a pinch settles
+        }
+
         private func reportTransform(_ scrollView: UIScrollView) {
             parent.onTransform(scrollView.zoomScale, scrollView.contentOffset)
         }
