@@ -186,6 +186,22 @@ final class SketchStoreTests: XCTestCase {
         XCTAssertEqual(store.search("  ").count, 2)                   // blank → everything
     }
 
+    func testSearchMatchesCarryFieldAndRange() throws {
+        let pad = store.create(title: "Garden layout")
+        store.saveTexts(pad.id, [TextBlock(text: "check garage fuse box", x: 0, y: 0)])
+
+        // Title match wins and carries the range within the title.
+        let title = try XCTUnwrap(store.searchMatches("gar").first)
+        XCTAssertEqual(title.field, .title)
+        XCTAssertEqual(title.displayString[try XCTUnwrap(title.matchedRange)], "Gar")
+
+        // Text-only query falls through to the block with a snippet.
+        let text = try XCTUnwrap(store.searchMatches("fuse").first)
+        guard case let .text(snippet) = text.field else { return XCTFail("expected text match") }
+        XCTAssertTrue(snippet.contains("fuse"))
+        XCTAssertNotNil(text.matchedRange)
+    }
+
     // MARK: - Back-compat
 
     func testOldMetadataWithoutNewFieldsStillLoads() throws {

@@ -87,11 +87,28 @@ final class SketchStore: ObservableObject {
     /// Pads whose title or text-block content matches the query
     /// (case-insensitive). Pads are few — reading text sidecars per query is fine.
     func search(_ query: String) -> [SketchDigest] {
+        searchMatches(query).map(\.digest)
+    }
+
+    /// Search with highlight detail: which field matched, the snippet for
+    /// text-block hits, and the matched range (mock 2c's result rows).
+    /// One match per pad — title wins over text content.
+    func searchMatches(_ query: String) -> [SearchMatch] {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !q.isEmpty else { return sketches }
-        return sketches.filter { digest in
-            if digest.title.localizedCaseInsensitiveContains(q) { return true }
-            return loadTexts(digest.id).contains { $0.text.localizedCaseInsensitiveContains(q) }
+        guard !q.isEmpty else {
+            return sketches.map { SearchMatch(digest: $0, field: .title, matchedRange: nil) }
+        }
+        return sketches.compactMap { digest in
+            if let range = digest.title.range(of: q, options: [.caseInsensitive, .diacriticInsensitive]) {
+                return SearchMatch(digest: digest, field: .title, matchedRange: range)
+            }
+            for block in loadTexts(digest.id) {
+                if let (snippet, range) = SearchEngine.snippet(for: q, in: block.text) {
+                    return SearchMatch(digest: digest, field: .text(snippet: snippet),
+                                       matchedRange: range)
+                }
+            }
+            return nil
         }
     }
 
