@@ -83,6 +83,11 @@ struct TextBlockLayer: View {
             .textFieldStyle(.plain)
             .font(.system(size: value.size))
             .foregroundStyle(QuillTheme.ink)
+            // Mac idiom won't relayout a live field on a font-only change —
+            // A± resizes landed in the data but never on screen. Keying the
+            // field's identity to its size forces a rebuild per step (focus is
+            // re-asserted by the A± buttons).
+            .id("field-\(value.id)-\(Int(value.size))")
             .focused($focused, equals: value.id)
             .disabled(!editing)
             .onSubmit { onChanged() }
@@ -160,8 +165,7 @@ struct TextBlockLayer: View {
 
             stripDivider
             Button {
-                block.wrappedValue.size = max(11, block.wrappedValue.size - 2)
-                onChanged()
+                resize(block, by: -2)
             } label: {
                 Text("A−").stripText(size: stripButton, fontSize: 13)
             }
@@ -169,8 +173,7 @@ struct TextBlockLayer: View {
 
             stripDivider
             Button {
-                block.wrappedValue.size = min(60, block.wrappedValue.size + 2)
-                onChanged()
+                resize(block, by: 2)
             } label: {
                 Text("A+").stripText(size: stripButton, fontSize: 17)
             }
@@ -199,6 +202,15 @@ struct TextBlockLayer: View {
 
     private var stripDivider: some View {
         Color.white.opacity(0.15).frame(width: 1, height: stripButton.height - 12)
+    }
+
+    /// Step the block's font size and keep it focused — the size-keyed field
+    /// identity recreates the field, which would otherwise drop focus.
+    private func resize(_ block: Binding<TextBlock>, by step: Double) {
+        let id = block.wrappedValue.id
+        block.wrappedValue.size = min(60, max(11, block.wrappedValue.size + step))
+        onChanged()
+        DispatchQueue.main.async { focused = id }
     }
 
     private func dragGesture(for block: Binding<TextBlock>) -> some Gesture {
