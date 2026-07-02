@@ -32,7 +32,12 @@ struct CanvasView: UIViewRepresentable {
 
     func makeUIView(context: Context) -> PKCanvasView {
         let canvas = PKCanvasView()
-        canvas.drawingPolicy = .anyInput           // finger + pencil + Mac pointer
+        #if targetEnvironment(macCatalyst)
+        canvas.drawingPolicy = .anyInput           // Mac pointer draws
+        #else
+        // iPad: only the Pencil draws; fingers scroll and pinch-zoom.
+        canvas.drawingPolicy = .pencilOnly
+        #endif
         canvas.minimumZoomScale = 1
         canvas.maximumZoomScale = 4                // pinch (or Mac buttons) to zoom
         canvas.isScrollEnabled = true              // pan while zoomed in
@@ -150,18 +155,31 @@ struct CanvasView: UIViewRepresentable {
 
             #if !targetEnvironment(macCatalyst)
             // iPad: Apple's tool palette. Attached AFTER the push animation
-            // finishes (~0.35s) so the transition isn't stalled. The Mac uses
-            // its own MacToolStrip instead — Catalyst's PKToolPicker palette is
-            // unreliable and its first-responder machinery fed the input bug.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak canvas] in
-                guard let canvas, canvas.window != nil else { return } // already closed
+            // finishes so the transition isn't stalled — with retries, because
+            // a single-shot attach silently bailed whenever the canvas wasn't
+            // in a window yet (palette never appeared). The Mac uses its own
+            // MacToolStrip instead.
+            attachToolPickerWhenReady(canvas)
+            #endif
+        }
+
+        #if !targetEnvironment(macCatalyst)
+        private func attachToolPickerWhenReady(_ canvas: PKCanvasView, attempt: Int = 0) {
+            guard attempt < 20 else { return } // ~5s of retries, then give up
+            DispatchQueue.main.asyncAfter(deadline: .now() + (attempt == 0 ? 0.4 : 0.25)) {
+                [weak self, weak canvas] in
+                guard let self, let canvas else { return }
+                guard canvas.window != nil else {
+                    self.attachToolPickerWhenReady(canvas, attempt: attempt + 1)
+                    return
+                }
                 let picker = Self.sharedToolPicker
                 picker.setVisible(true, forFirstResponder: canvas)
                 picker.addObserver(canvas)
                 canvas.becomeFirstResponder()
             }
-            #endif
         }
+        #endif
 
         func detachToolPicker(from canvas: PKCanvasView) {
             #if !targetEnvironment(macCatalyst)
