@@ -43,7 +43,7 @@ struct MacToolStrip: View {
             Divider().frame(height: 16)
 
             // Colors
-            HStack(spacing: 5) {
+            HStack(spacing: 7) {
                 ForEach(Self.colors, id: \.name) { entry in
                     Button {
                         colorName = entry.name
@@ -52,7 +52,7 @@ struct MacToolStrip: View {
                     } label: {
                         Circle()
                             .fill(Color(uiColor: entry.color))
-                            .frame(width: 15, height: 15)
+                            .frame(width: 18, height: 18)
                             .overlay(Circle().stroke(Color.accentColor,
                                                      lineWidth: colorName == entry.name ? 2 : 0))
                     }
@@ -60,13 +60,13 @@ struct MacToolStrip: View {
                 }
             }
 
-            Divider().frame(height: 16)
+            Divider().frame(height: 18)
 
             // Width
             Slider(value: $width, in: 1...24, step: 1) { editing in
                 if !editing { rebuildTool() }
             }
-            .frame(width: 84)
+            .frame(width: 110)
         }
         .onAppear { rebuildTool() }
     }
@@ -74,10 +74,10 @@ struct MacToolStrip: View {
     private func toolButton(icon: String, selected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.system(size: 14, weight: .medium))
-                .frame(width: 28, height: 26)
+                .font(.system(size: 16, weight: .medium))
+                .frame(width: 34, height: 30)
                 .background(selected ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear),
-                            in: RoundedRectangle(cornerRadius: 6))
+                            in: RoundedRectangle(cornerRadius: 7))
         }
         .buttonStyle(.plain)
     }
