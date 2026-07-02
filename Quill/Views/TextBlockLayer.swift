@@ -20,6 +20,9 @@ struct TextBlockLayer: View {
     @Binding var hasFocusedBlock: Bool
     /// Parent increments to force-deselect (Esc).
     let deselectSignal: Int
+    /// iPad long-press: focus the block at `point` (content coordinates) or
+    /// create one there. `id` increments per request.
+    var focusRequest: (id: Int, point: CGPoint)?
     var onChanged: () -> Void
 
     @FocusState private var focused: UUID?
@@ -82,6 +85,25 @@ struct TextBlockLayer: View {
         .onChange(of: editing) { _, nowEditing in
             if !nowEditing { focused = nil }
         }
+        .onChange(of: focusRequest?.id) { _, _ in
+            guard editing, let request = focusRequest else { return }
+            // A press on an existing block edits it; on empty paper it plants
+            // a new one. Bounds are estimated for auto-sized blocks — a miss
+            // just means a fresh block next to the old one.
+            if let hit = texts.last(where: { approxRect($0).contains(request.point) }) {
+                focused = hit.id
+            } else {
+                addBlock(at: request.point)
+            }
+        }
+    }
+
+    /// Rough on-canvas rect of a block (auto-sized ones have no stored box).
+    private func approxRect(_ block: TextBlock) -> CGRect {
+        CGRect(x: block.x, y: block.y,
+               width: block.width ?? 240,
+               height: block.height ?? max(44, block.size * 1.6 + 14))
+            .insetBy(dx: -8, dy: -8)
     }
 
     // MARK: - Block
