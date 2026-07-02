@@ -33,7 +33,10 @@ targets:
         GENERATE_INFOPLIST_FILE: NO
         SUPPORTS_MACCATALYST: YES
         SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
-        TARGETED_DEVICE_FAMILY: "1,2"
+        # Family 6 = Mac idiom ("Optimize Interface for Mac"): Catalyst renders
+        # 1:1 instead of the 77% scaled-to-iPad mode, so the Studio design's
+        # sizes appear as designed.
+        TARGETED_DEVICE_FAMILY: "1,2,6"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
 

@@ -27,6 +27,7 @@ struct SketchDetailView: View {
     @State private var canvasScale: CGFloat = 1
     @State private var canvasOffset: CGPoint = .zero
     @State private var zoomRequest: (id: Int, scale: CGFloat)?
+    @State private var zoomRequestedAt: Date?
     /// Text-block focus (drives Esc: deselect first, then go back).
     @State private var hasFocusedBlock = false
     @State private var deselectSignal = 0
@@ -171,15 +172,23 @@ struct SketchDetailView: View {
     }
 
     private func requestZoom(step: CGFloat) {
-        // Step from the last REQUESTED zoom, not from canvasScale — the state
-        // can lag an in-flight animation, which made repeated presses no-ops.
-        let base = zoomRequest?.scale ?? canvasScale
-        let clamped = min(4, max(1, base + step))
-        zoomRequest = (id: (zoomRequest?.id ?? 0) + 1, scale: clamped)
+        // While a button-driven zoom animation is in flight (~0.35s), step from
+        // the requested target — canvasScale lags the animation and made rapid
+        // presses no-ops. Once settled (or after a pinch, which never issues a
+        // request), step from the REAL current scale, or buttons appear
+        // blocked after pinching.
+        let animationInFlight = zoomRequestedAt.map { Date().timeIntervalSince($0) < 0.4 } ?? false
+        let base = animationInFlight ? (zoomRequest?.scale ?? canvasScale) : canvasScale
+        issueZoom(min(4, max(1, base + step)))
     }
 
     private func requestZoomReset() {
-        zoomRequest = (id: (zoomRequest?.id ?? 0) + 1, scale: 1)
+        issueZoom(1)
+    }
+
+    private func issueZoom(_ scale: CGFloat) {
+        zoomRequest = (id: (zoomRequest?.id ?? 0) + 1, scale: scale)
+        zoomRequestedAt = Date()
     }
     #endif
 

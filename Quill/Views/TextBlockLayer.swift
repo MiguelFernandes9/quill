@@ -100,6 +100,13 @@ struct TextBlockLayer: View {
                                 : StrokeStyle(lineWidth: 1, dash: [4, 3]))
                     .opacity(editing ? 1 : 0)
             )
+            // Focus tap covers the block body ONLY — attached BEFORE the strip
+            // overlay, or the parent gesture swallows the strip's buttons
+            // (that's what broke delete).
+            .contentShape(RoundedRectangle(cornerRadius: blockRadius))
+            .onTapGesture {
+                if editing { focused = value.id }
+            }
             // Corner handles (visual affordance; resizing is A−/A+).
             .overlay {
                 if editing && isFocused {
@@ -112,9 +119,6 @@ struct TextBlockLayer: View {
                     controlStrip(block)
                         .offset(y: stripOffset)
                 }
-            }
-            .onTapGesture {
-                if editing { focused = value.id }
             }
             .offset(x: value.x + (isDragging ? dragOffset.width : 0),
                     y: value.y + (isDragging ? dragOffset.height : 0))
