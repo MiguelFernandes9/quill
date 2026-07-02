@@ -40,9 +40,7 @@ struct SketchDetailView: View {
         // exist under the controls. Dedicated top bar; canvas starts below it.
         VStack(spacing: 0) {
             macTopBar
-            if !editingTexts {
-                MacToolStrip(tool: $macTool)
-            }
+            Divider()
             canvasStack
         }
         .background(Color(uiColor: .systemBackground))
@@ -140,28 +138,32 @@ struct SketchDetailView: View {
     /// Zoom out / reset / in. iPad zooms by pinching; the Mac gets buttons
     /// (trackpad pinch works too).
     private var zoomControls: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 0) {
             Button {
                 requestZoom(canvasScale - 0.5)
             } label: {
-                Image(systemName: "minus.magnifyingglass").frame(width: 30, height: 30)
+                Image(systemName: "minus.magnifyingglass")
+                    .font(.system(size: 12))
+                    .frame(width: 24, height: 22)
             }
             Button {
                 requestZoom(1)
             } label: {
                 Text("\(Int((canvasScale * 100).rounded()))%")
                     .font(.caption.monospacedDigit())
-                    .frame(minWidth: 42)
+                    .frame(minWidth: 40)
             }
+            .help("Reset zoom")
             Button {
                 requestZoom(canvasScale + 0.5)
             } label: {
-                Image(systemName: "plus.magnifyingglass").frame(width: 30, height: 30)
+                Image(systemName: "plus.magnifyingglass")
+                    .font(.system(size: 12))
+                    .frame(width: 24, height: 22)
             }
         }
         .buttonStyle(.plain)
-        .padding(.horizontal, 4)
-        .background(.ultraThinMaterial, in: Capsule())
+        .background(Color(uiColor: .quaternarySystemFill), in: RoundedRectangle(cornerRadius: 6))
     }
 
     private func requestZoom(_ scale: CGFloat) {
@@ -188,61 +190,65 @@ struct SketchDetailView: View {
     }
 
     #if targetEnvironment(macCatalyst)
-    /// Pen-free strip: the canvas lives entirely below it, so PencilKit's
-    /// input machinery can never claim clicks on these controls. Styled like
-    /// the original toolbar — round icon buttons, centered title.
+    /// Pen-free bar: the canvas lives entirely below it, so PencilKit's input
+    /// machinery can never claim clicks on these controls. One compact,
+    /// flat, Mac-style row: back · tools · zoom · presence · text · paper.
     private var macTopBar: some View {
-        ZStack {
-            Text(sketch.title)
-                .font(.headline)
-
-            HStack(spacing: 10) {
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "chevron.backward")
-                        .font(.body.weight(.semibold))
-                        .frame(width: 36, height: 36)
-                        .background(.ultraThinMaterial, in: Circle())
-                }
-                .buttonStyle(.plain)
-                // Esc: deselect a focused text block first; else go back.
-                .background(
-                    Button("") {
-                        if hasFocusedBlock {
-                            deselectSignal += 1
-                        } else {
-                            dismiss()
-                        }
-                    }
-                    .keyboardShortcut(.cancelAction)
-                    .opacity(0)
-                    .accessibilityHidden(true)
-                )
-
-                Spacer()
-
-                zoomControls
-
-                if connectivity.peerOpenSketchID == sketch.id {
-                    presenceBadge
-                }
-
-                textModeButton
-                    .buttonStyle(.plain)
-                    .font(.body.weight(.semibold))
-                    .frame(width: 36, height: 36)
-                    .background(editingTexts ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.ultraThinMaterial),
-                                in: Circle())
-
-                paperMenu
-                    .font(.body.weight(.semibold))
-                    .frame(width: 36, height: 36)
-                    .background(.ultraThinMaterial, in: Circle())
+        HStack(spacing: 10) {
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "chevron.backward")
+                    .font(.system(size: 14, weight: .semibold))
+                    .frame(width: 28, height: 26)
+                    .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            // Esc: deselect a focused text block first; else go back.
+            .background(
+                Button("") {
+                    if hasFocusedBlock {
+                        deselectSignal += 1
+                    } else {
+                        dismiss()
+                    }
+                }
+                .keyboardShortcut(.cancelAction)
+                .opacity(0)
+                .accessibilityHidden(true)
+            )
+
+            Divider().frame(height: 16)
+
+            MacToolStrip(tool: $macTool)
+                .disabled(editingTexts)
+                .opacity(editingTexts ? 0.4 : 1)
+
+            Spacer(minLength: 12)
+
+            zoomControls
+
+            if connectivity.peerOpenSketchID == sketch.id {
+                Image(systemName: "person.fill")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.green)
+                    .help("\(connectivity.peerName ?? "Peer") is in this pad")
+            }
+
+            textModeButton
+                .buttonStyle(.plain)
+                .font(.system(size: 14, weight: .medium))
+                .frame(width: 28, height: 26)
+                .background(editingTexts ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear),
+                            in: RoundedRectangle(cornerRadius: 6))
+
+            paperMenu
+                .font(.system(size: 14, weight: .medium))
+                .frame(width: 28, height: 26)
+                .contentShape(Rectangle())
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.vertical, 7)
     }
     #endif
 

@@ -25,9 +25,9 @@ struct MacToolStrip: View {
     ]
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 10) {
             // Tools
-            HStack(spacing: 4) {
+            HStack(spacing: 2) {
                 ForEach(Self.inks, id: \.name) { ink in
                     toolButton(icon: ink.icon, selected: toolName == ink.name) {
                         toolName = ink.name
@@ -40,10 +40,10 @@ struct MacToolStrip: View {
                 }
             }
 
-            Divider().frame(height: 20)
+            Divider().frame(height: 16)
 
             // Colors
-            HStack(spacing: 6) {
+            HStack(spacing: 5) {
                 ForEach(Self.colors, id: \.name) { entry in
                     Button {
                         colorName = entry.name
@@ -52,7 +52,7 @@ struct MacToolStrip: View {
                     } label: {
                         Circle()
                             .fill(Color(uiColor: entry.color))
-                            .frame(width: 18, height: 18)
+                            .frame(width: 15, height: 15)
                             .overlay(Circle().stroke(Color.accentColor,
                                                      lineWidth: colorName == entry.name ? 2 : 0))
                     }
@@ -60,31 +60,24 @@ struct MacToolStrip: View {
                 }
             }
 
-            Divider().frame(height: 20)
+            Divider().frame(height: 16)
 
             // Width
-            HStack(spacing: 6) {
-                Image(systemName: "lineweight").font(.caption)
-                Slider(value: $width, in: 1...24, step: 1) { editing in
-                    if !editing { rebuildTool() }
-                }
-                .frame(width: 110)
+            Slider(value: $width, in: 1...24, step: 1) { editing in
+                if !editing { rebuildTool() }
             }
-
-            Spacer()
+            .frame(width: 84)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 6)
         .onAppear { rebuildTool() }
     }
 
     private func toolButton(icon: String, selected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.body.weight(.medium))
-                .frame(width: 32, height: 30)
+                .font(.system(size: 14, weight: .medium))
+                .frame(width: 28, height: 26)
                 .background(selected ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear),
-                            in: RoundedRectangle(cornerRadius: 7))
+                            in: RoundedRectangle(cornerRadius: 6))
         }
         .buttonStyle(.plain)
     }

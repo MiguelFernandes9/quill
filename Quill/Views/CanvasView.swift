@@ -246,6 +246,13 @@ struct CanvasView: UIViewRepresentable {
 
         // MARK: Zoom / pan (UIScrollViewDelegate via PKCanvasViewDelegate)
 
+        /// Required for UIScrollView zooming to function at all — without a
+        /// zooming view from the delegate, pinch and setZoomScale are inert.
+        /// PencilKit's content is the canvas's first subview.
+        func viewForZooming(in scrollView: UIScrollView) -> UIView? {
+            scrollView.subviews.first
+        }
+
         func scrollViewDidZoom(_ scrollView: UIScrollView) {
             reportTransform(scrollView)
         }
