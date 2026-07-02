@@ -50,8 +50,9 @@ struct PadGridView: View {
     // MARK: - Grid
 
     private func grid(_ plain: [SketchDigest]) -> some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: QuillTheme.gridGap),
-                                 count: 3),
+        // Adaptive columns: ~3 across in landscape, fewer in portrait or a
+        // narrow window — keeps the vertical orientation usable.
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 210), spacing: QuillTheme.gridGap)],
                   spacing: QuillTheme.gridGap) {
             ForEach(plain) { pad in
                 PadCard(pad: pad,

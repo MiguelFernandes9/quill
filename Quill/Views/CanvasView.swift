@@ -282,9 +282,13 @@ struct CanvasView: UIViewRepresentable {
 
         /// Required for UIScrollView zooming to function at all — without a
         /// zooming view from the delegate, pinch and setZoomScale are inert.
-        /// PencilKit's content is the canvas's first subview.
+        /// PencilKit's content view must be picked carefully: `subviews.first`
+        /// can be a scroll INDICATOR on some OS versions, and zooming that
+        /// scales the indicator while the ink never moves.
         func viewForZooming(in scrollView: UIScrollView) -> UIView? {
-            scrollView.subviews.first
+            scrollView.subviews
+                .filter { !NSStringFromClass(type(of: $0)).lowercased().contains("indicator") }
+                .max { $0.bounds.width * $0.bounds.height < $1.bounds.width * $1.bounds.height }
         }
 
         func scrollViewDidZoom(_ scrollView: UIScrollView) {
