@@ -88,77 +88,88 @@ struct TextBlockLayer: View {
         let isDragging = draggingID == value.id
         let isFocused = focused == value.id
 
-        return TextField("Text", text: block.text, axis: .vertical)
+        // The FIELD keeps its own content-driven layout (the Mac idiom needs a
+        // layout change per keystroke or typed text doesn't render); the BOX
+        // around it carries the user-set width/height from handle resizing.
+        let field = TextField("Text", text: block.text, axis: .vertical)
             .textFieldStyle(.plain)
             .font(.system(size: value.size))
             .foregroundStyle(QuillTheme.ink)
-            // Mac idiom won't relayout a live field on a FONT-only change —
-            // A± steps landed in the data but never on screen, so the field's
-            // identity is keyed to its size (focus re-asserted by A±). Width
-            // is a frame change and relayouts normally — keep it OUT of the
-            // key or handle-dragging would recreate the field per tick.
+            // Font-only changes don't relayout a live field in the Mac idiom —
+            // identity is keyed to size (focus re-asserted by A±). Box changes
+            // are frame changes and relayout normally: keep them OUT of the key
+            // or handle-dragging would recreate the field per tick.
             .id("field-\(value.id)-\(Int(value.size))")
             .focused($focused, equals: value.id)
             .disabled(!editing)
             .onSubmit { onChanged() }
-            // Mac idiom doesn't relayout a vertical-axis field per keystroke —
-            // typed text stayed invisible until something else (A±) forced a
-            // layout pass. Content-sizing forces it every change.
             .fixedSize(horizontal: false, vertical: true)
-            .frame(width: value.width.map { CGFloat(max($0, 60)) }, alignment: .leading)
-            .frame(minWidth: 60, maxWidth: value.width == nil ? 360 : nil, alignment: .leading)
-            .padding(.horizontal, 11)
-            .padding(.vertical, 7)
-            // Idle blocks: dashed hairline over translucent white; selected:
-            // solid accent border on a more opaque white (mock 4a/4b).
-            .background(
-                RoundedRectangle(cornerRadius: blockRadius)
-                    .fill(Color.white.opacity(isFocused ? 0.85 : 0.72))
-                    .opacity(editing || !value.text.isEmpty ? 1 : 0)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: blockRadius)
-                    .stroke(isFocused ? QuillTheme.accent : QuillTheme.dashedBlock,
-                            style: isFocused
-                                ? StrokeStyle(lineWidth: 1.5)
-                                : StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                    .opacity(editing ? 1 : 0)
-            )
-            // Focus tap covers the block body ONLY — attached BEFORE the strip
-            // overlay, or the parent gesture swallows the strip's buttons
-            // (that's what broke delete).
-            .contentShape(RoundedRectangle(cornerRadius: blockRadius))
-            .onTapGesture {
-                if editing { focused = value.id }
+            .frame(minWidth: 40, maxWidth: value.width == nil ? 360 : .infinity,
+                   alignment: .leading)
+
+        return ZStack(alignment: .topLeading) {
+            field
+                .padding(.horizontal, 11)
+                .padding(.vertical, 7)
+        }
+        .frame(width: value.width.map { CGFloat(max($0, 60)) },
+               height: value.height.map { CGFloat(max($0, 32)) },
+               alignment: .topLeading)
+        .clipped() // a box shorter than its text crops, like a real text frame
+        // Idle blocks: dashed hairline over translucent white; selected:
+        // solid accent border on a more opaque white (mock 4a/4b).
+        .background(
+            RoundedRectangle(cornerRadius: blockRadius)
+                .fill(Color.white.opacity(isFocused ? 0.85 : 0.72))
+                .opacity(editing || !value.text.isEmpty ? 1 : 0)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: blockRadius)
+                .stroke(isFocused ? QuillTheme.accent : QuillTheme.dashedBlock,
+                        style: isFocused
+                            ? StrokeStyle(lineWidth: 1.5)
+                            : StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                .opacity(editing ? 1 : 0)
+        )
+        // Focus tap covers the block body ONLY — attached BEFORE the strip
+        // overlay, or the parent gesture swallows the strip's buttons
+        // (that's what broke delete).
+        .contentShape(RoundedRectangle(cornerRadius: blockRadius))
+        .onTapGesture {
+            if editing { focused = value.id }
+        }
+        // Drag anywhere on an UNFOCUSED block to move it (intuitive drag &
+        // drop); a focused block keeps its text interactions — move it with
+        // the strip's ✥ handle.
+        .gesture(dragGesture(for: block), including: isFocused ? .subviews : .all)
+        // Corner handles: drag to resize the block's box (A± = font size).
+        .overlay {
+            if editing && isFocused {
+                resizeHandles(block)
             }
-            // Corner handles: drag to resize the block's box (A± = font size).
-            .overlay {
-                if editing && isFocused {
-                    resizeHandles(block)
-                }
+        }
+        // Control strip floats centered BELOW the block (mock 4a/4b).
+        .overlay(alignment: .bottom) {
+            if editing && isFocused {
+                controlStrip(block)
+                    .offset(y: stripOffset)
             }
-            // Control strip floats centered BELOW the block (mock 4a/4b).
-            .overlay(alignment: .bottom) {
-                if editing && isFocused {
-                    controlStrip(block)
-                        .offset(y: stripOffset)
-                }
-            }
-            .offset(x: value.x + (isDragging ? dragOffset.width : 0),
-                    y: value.y + (isDragging ? dragOffset.height : 0))
+        }
+        .offset(x: value.x + (isDragging ? dragOffset.width : 0),
+                y: value.y + (isDragging ? dragOffset.height : 0))
     }
 
     /// Four white circles with accent borders on the block's corners. Dragging
-    /// any of them resizes the block's box: trailing handles move the right
-    /// edge; leading handles move the left edge (x shifts so the right edge
-    /// stays put). Height always follows the wrapped text.
+    /// resizes the box as a free rectangle: each handle moves its own two
+    /// edges; the opposite corner stays anchored. Drag out a wide short box or
+    /// a tall narrow one — the text wraps (and crops) to fit.
     private func resizeHandles(_ block: Binding<TextBlock>) -> some View {
         GeometryReader { geo in
-            let corners: [(point: CGPoint, leading: Bool)] = [
-                (CGPoint(x: 0, y: 0), true),
-                (CGPoint(x: geo.size.width, y: 0), false),
-                (CGPoint(x: 0, y: geo.size.height), true),
-                (CGPoint(x: geo.size.width, y: geo.size.height), false),
+            let corners: [(point: CGPoint, leading: Bool, top: Bool)] = [
+                (CGPoint(x: 0, y: 0), true, true),
+                (CGPoint(x: geo.size.width, y: 0), false, true),
+                (CGPoint(x: 0, y: geo.size.height), true, false),
+                (CGPoint(x: geo.size.width, y: geo.size.height), false, false),
             ]
             ForEach(corners.indices, id: \.self) { index in
                 let corner = corners[index]
@@ -166,32 +177,40 @@ struct TextBlockLayer: View {
                     .fill(.white)
                     .overlay(Circle().stroke(QuillTheme.accent, lineWidth: 1.5))
                     .frame(width: handleSize, height: handleSize)
-                    .padding(8) // real hit target around the tiny circle
+                    .padding(10) // real hit target around the tiny circle
                     .contentShape(Circle())
                     .position(corner.point)
                     .gesture(resizeGesture(for: block, leading: corner.leading,
-                                           startWidth: geo.size.width))
+                                           top: corner.top, startSize: geo.size))
             }
         }
     }
 
-    /// In-flight resize bookkeeping (width and x at drag start).
-    @State private var resizeStart: (width: CGFloat, x: Double)?
+    /// In-flight resize bookkeeping (box size and origin at drag start).
+    @State private var resizeStart: (size: CGSize, x: Double, y: Double)?
 
     private func resizeGesture(for block: Binding<TextBlock>, leading: Bool,
-                               startWidth: CGFloat) -> some Gesture {
+                               top: Bool, startSize: CGSize) -> some Gesture {
         DragGesture(coordinateSpace: .named("textLayer"))
             .onChanged { drag in
                 if resizeStart == nil {
-                    resizeStart = (startWidth, block.wrappedValue.x)
+                    resizeStart = (startSize, block.wrappedValue.x, block.wrappedValue.y)
                 }
                 guard let start = resizeStart else { return }
                 let dx = drag.translation.width
-                let newWidth = max(60, min(800, leading ? start.width - dx : start.width + dx))
+                let dy = drag.translation.height
+
+                let newWidth = max(60, min(800, leading ? start.size.width - dx
+                                                        : start.size.width + dx))
+                let newHeight = max(32, min(800, top ? start.size.height - dy
+                                                     : start.size.height + dy))
                 block.wrappedValue.width = Double(newWidth)
-                if leading {
-                    // Keep the right edge fixed while the left edge moves.
-                    block.wrappedValue.x = start.x + Double(start.width - newWidth)
+                block.wrappedValue.height = Double(newHeight)
+                if leading { // left edge moves; right edge stays anchored
+                    block.wrappedValue.x = start.x + Double(start.size.width - newWidth)
+                }
+                if top { // top edge moves; bottom edge stays anchored
+                    block.wrappedValue.y = start.y + Double(start.size.height - newHeight)
                 }
             }
             .onEnded { _ in
