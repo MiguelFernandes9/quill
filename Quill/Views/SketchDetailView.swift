@@ -31,6 +31,8 @@ struct SketchDetailView: View {
     /// Text-block focus (drives Esc: deselect first, then go back).
     @State private var hasFocusedBlock = false
     @State private var deselectSignal = 0
+    /// iPad long-press: ask the text layer to focus/create a block here.
+    @State private var focusBlockRequest: (id: Int, point: CGPoint)?
 
     var body: some View {
         #if targetEnvironment(macCatalyst)
@@ -100,6 +102,12 @@ struct SketchDetailView: View {
                     onTransform: { scale, offset in
                         canvasScale = scale
                         canvasOffset = offset
+                    },
+                    onLongPress: { point in
+                        // iPad: long-press IS the text tool — no bar button.
+                        editingTexts = true
+                        focusBlockRequest = (id: (focusBlockRequest?.id ?? 0) + 1,
+                                             point: point)
                     }
                 )
                 .ignoresSafeArea(edges: .bottom)
@@ -110,7 +118,8 @@ struct SketchDetailView: View {
                 TextBlockLayer(texts: $texts, editing: editingTexts,
                                visibleRect: visibleContentRect(viewportSize),
                                hasFocusedBlock: $hasFocusedBlock,
-                               deselectSignal: deselectSignal) {
+                               deselectSignal: deselectSignal,
+                               focusRequest: focusBlockRequest) {
                     commitTexts()
                 }
                 RemoteCursorLayer()
@@ -140,6 +149,18 @@ struct SketchDetailView: View {
         .onChange(of: editingTexts) { _, editing in
             if !editing { commitTexts() }
         }
+        #if !targetEnvironment(macCatalyst)
+        // iPad text mode is transient: it lives while a block is focused and
+        // folds up when focus ends (tap on empty paper). Checked after a
+        // beat — A± recreates the field and refocuses on the next runloop,
+        // and that blink must not tear the mode down.
+        .onChange(of: hasFocusedBlock) { _, focusedNow in
+            guard !focusedNow, editingTexts else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                if !hasFocusedBlock && editingTexts { editingTexts = false }
+            }
+        }
+        #endif
         .onReceive(connectivity.canvasCommands) { id, command in
             guard id == sketch.id else { return }
             switch command {
@@ -343,7 +364,8 @@ struct SketchDetailView: View {
     }
     #else
     /// iPad bar (mocks 2b/4b): accent back, centered title, presence chip,
-    /// Text-tool button, paper chip. Touch-sized; hairline bottom.
+    /// paper chip. Touch-sized; hairline bottom. No Text button — a finger
+    /// long-press on the canvas opens text editing where it lands.
     private var iPadTopBar: some View {
         ZStack {
             Text(sketch.title)
@@ -372,36 +394,12 @@ struct SketchDetailView: View {
                     presenceChip
                 }
 
-                textToolButton
-
                 paperChip
             }
         }
         .padding(.horizontal, 12)
         .frame(height: 50)
         .background(QuillTheme.background)
-    }
-
-    /// iPad Text tool (mock 4b): 44×38, accent bg + soft ring when active.
-    private var textToolButton: some View {
-        Button {
-            editingTexts.toggle() // leaving the tool commits via onChange
-        } label: {
-            Image(systemName: "character.cursor.ibeam")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(editingTexts ? .white : QuillTheme.ink)
-                .frame(width: 44, height: 38)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(editingTexts ? QuillTheme.accent : QuillTheme.surface)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(editingTexts ? QuillTheme.accentSoft : QuillTheme.hairline,
-                                lineWidth: editingTexts ? 3 : 1)
-                )
-        }
-        .buttonStyle(.plain)
     }
     #endif
 

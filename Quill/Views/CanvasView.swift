@@ -34,6 +34,9 @@ struct CanvasView: UIViewRepresentable {
     /// Reports the canvas's live zoom + pan so sibling overlays (paper, text,
     /// remote cursor) can transform in lockstep.
     var onTransform: (CGFloat, CGPoint) -> Void
+    /// iPad: a finger long-press on the canvas, in content coordinates —
+    /// the entry point into text editing (no recognizer on Mac).
+    var onLongPress: ((CGPoint) -> Void)?
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -208,6 +211,16 @@ struct CanvasView: UIViewRepresentable {
             // in a window yet (palette never appeared). The Mac uses its own
             // MacToolStrip instead.
             attachToolPickerWhenReady(canvas)
+
+            // Finger long-press opens text editing at that spot. Finger-only:
+            // the Pencil must never trigger it mid-stroke, and a stationary
+            // press doesn't collide with the scroll view's pan (needs motion).
+            let longPress = UILongPressGestureRecognizer(target: self,
+                                                         action: #selector(handleLongPress(_:)))
+            longPress.minimumPressDuration = 0.5
+            longPress.allowedTouchTypes = [NSNumber(value: UITouch.TouchType.direct.rawValue)]
+            longPress.delegate = self
+            canvas.addGestureRecognizer(longPress)
             #endif
         }
 
@@ -409,6 +422,16 @@ struct CanvasView: UIViewRepresentable {
         func parentTransform(_ scrollView: UIScrollView) {
             reportTransform(scrollView)
         }
+
+        #if !targetEnvironment(macCatalyst)
+        @objc private func handleLongPress(_ g: UILongPressGestureRecognizer) {
+            guard g.state == .began, let view = g.view else { return }
+            let point = g.location(in: view)
+            let scale = canvas?.zoomScale ?? 1
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            parent.onLongPress?(CGPoint(x: point.x / scale, y: point.y / scale))
+        }
+        #endif
 
         // MARK: Cursor
 
