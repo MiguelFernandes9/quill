@@ -11,6 +11,11 @@ import SwiftUI
 struct TextBlockLayer: View {
     @Binding var texts: [TextBlock]
     let editing: Bool
+    /// The canvas viewport in CONTENT coordinates. The tap-catcher is pinned
+    /// to exactly this rect — a full-size catcher, scaled and panned, extends
+    /// past the canvas in hit-test space and eats toolbar clicks (clipping is
+    /// visual only; hit-testing ignores it).
+    let visibleRect: CGRect
     /// Mirrors whether any block is focused (drives Esc behavior upstream).
     @Binding var hasFocusedBlock: Bool
     /// Parent increments to force-deselect (Esc).
@@ -41,15 +46,19 @@ struct TextBlockLayer: View {
         ZStack(alignment: .topLeading) {
             if editing {
                 // Tap empty space: deselect first; if nothing selected, add.
+                // Sized to the visible viewport only — never over the bar.
                 Color.clear
+                    .frame(width: visibleRect.width, height: visibleRect.height)
                     .contentShape(Rectangle())
                     .onTapGesture { location in
                         if focused != nil {
                             focused = nil
                         } else {
-                            addBlock(at: location)
+                            addBlock(at: CGPoint(x: location.x + visibleRect.minX,
+                                                 y: location.y + visibleRect.minY))
                         }
                     }
+                    .offset(x: visibleRect.minX, y: visibleRect.minY)
             }
             ForEach($texts) { $block in
                 blockView($block)

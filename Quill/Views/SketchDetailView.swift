@@ -61,6 +61,20 @@ struct SketchDetailView: View {
     }
 
     private var canvasStack: some View {
+        GeometryReader { geo in
+            canvasContent(viewportSize: geo.size)
+        }
+    }
+
+    /// The canvas viewport in content coordinates at the current zoom/pan.
+    private func visibleContentRect(_ size: CGSize) -> CGRect {
+        CGRect(x: canvasOffset.x / canvasScale,
+               y: canvasOffset.y / canvasScale,
+               width: size.width / canvasScale,
+               height: size.height / canvasScale)
+    }
+
+    private func canvasContent(viewportSize: CGSize) -> some View {
         ZStack(alignment: .topLeading) {
             // Paper, text blocks, and remote cursor live in canvas CONTENT
             // coordinates; these transforms keep them glued to the ink at any
@@ -93,6 +107,7 @@ struct SketchDetailView: View {
 
             ZStack(alignment: .topLeading) {
                 TextBlockLayer(texts: $texts, editing: editingTexts,
+                               visibleRect: visibleContentRect(viewportSize),
                                hasFocusedBlock: $hasFocusedBlock,
                                deselectSignal: deselectSignal) {
                     commitTexts()

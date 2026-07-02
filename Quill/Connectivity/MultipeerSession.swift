@@ -26,10 +26,18 @@ final class MultipeerSession: NSObject {
     var connectedPeers: [MCPeerID] { session.connectedPeers }
 
     override init() {
-        // A per-launch suffix guarantees distinct display names so the
-        // invite tie-break below always resolves (two "iPad"s would deadlock).
+        // Advertise the PLATFORM KIND, not UIDevice.current.name — iOS 16+
+        // returns the generic model ("iPad") for privacy, and Catalyst's value
+        // is unreliable, which made both peers read as "iPad". A per-launch
+        // suffix guarantees distinct display names so the invite tie-break
+        // below always resolves.
+        #if targetEnvironment(macCatalyst)
+        let kind = "Mac"
+        #else
+        let kind = UIDevice.current.userInterfaceIdiom == .pad ? "iPad" : "iPhone"
+        #endif
         let suffix = String(UUID().uuidString.prefix(4))
-        let name = "\(UIDevice.current.name)-\(suffix)"
+        let name = "\(kind)-\(suffix)"
         myPeerID = MCPeerID(displayName: String(name.prefix(63)))
         session = MCSession(peer: myPeerID, securityIdentity: nil, encryptionPreference: .required)
         advertiser = MCNearbyServiceAdvertiser(peer: myPeerID, discoveryInfo: nil, serviceType: Self.serviceType)
