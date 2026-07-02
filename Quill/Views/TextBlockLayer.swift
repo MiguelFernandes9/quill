@@ -170,9 +170,15 @@ struct TextBlockLayer: View {
 
             stripDivider
             Button {
+                // Resign focus first, then remove on the NEXT runloop turn:
+                // removing synchronously while the block's TextField is still
+                // focused crashes SwiftUI's ForEach-binding write-back.
+                let id = block.wrappedValue.id
                 focused = nil
-                texts.removeAll { $0.id == block.wrappedValue.id }
-                onChanged()
+                DispatchQueue.main.async {
+                    texts.removeAll { $0.id == id }
+                    onChanged()
+                }
             } label: {
                 Image(systemName: "trash").stripIcon(size: stripButton, tint: QuillTheme.softRed)
             }

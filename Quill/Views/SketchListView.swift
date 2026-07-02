@@ -52,6 +52,7 @@ struct SketchListView: View {
                 try? await Task.sleep(nanoseconds: 250_000_000)
                 if !Task.isCancelled { debouncedQuery = searchText }
             }
+            .onAppear(perform: hideWindowTitle)
             .background(QuillTheme.background)
             .navigationTitle("")
             .toolbar(.hidden, for: .navigationBar)
@@ -184,5 +185,17 @@ struct SketchListView: View {
 
     private func bind<T>(_ value: Binding<T?>) -> Binding<Bool> {
         Binding(get: { value.wrappedValue != nil }, set: { if !$0 { value.wrappedValue = nil } })
+    }
+
+    /// Mac: drop the "Quill" text next to the traffic lights (mock 1b shows a
+    /// wordless titlebar). Titlebar exists only on Catalyst.
+    private func hideWindowTitle() {
+        #if targetEnvironment(macCatalyst)
+        DispatchQueue.main.async {
+            for case let scene as UIWindowScene in UIApplication.shared.connectedScenes {
+                scene.titlebar?.titleVisibility = .hidden
+            }
+        }
+        #endif
     }
 }
