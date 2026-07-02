@@ -5,6 +5,14 @@ import SwiftUI
 struct EmptyHomeView: View {
     var onNewPad: () -> Void
 
+    private var otherDevice: String {
+        #if targetEnvironment(macCatalyst)
+        "iPad"
+        #else
+        "Mac"
+        #endif
+    }
+
     var body: some View {
         VStack(spacing: 10) {
             SquiggleGlyph()
@@ -13,7 +21,7 @@ struct EmptyHomeView: View {
             Text("No pads yet")
                 .font(QuillTheme.sectionTitle())
                 .foregroundStyle(QuillTheme.ink)
-            Text("Everything you draw here syncs to your iPad when it's nearby.")
+            Text("Everything you draw here syncs to your \(otherDevice) when it's nearby.")
                 .font(QuillTheme.body())
                 .foregroundStyle(QuillTheme.muted)
             Button(action: onNewPad) {

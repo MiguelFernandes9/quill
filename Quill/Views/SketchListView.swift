@@ -170,6 +170,7 @@ struct SketchListView: View {
     private func deletePad(_ pad: SketchDigest) {
         store.delete(pad.id)
         connectivity.sendDelete(pad.id)
+        path.removeAll { $0.id == pad.id } // never leave a deleted pad on-screen
     }
 
     private func deleteSection(_ section: SectionMetadata) {
