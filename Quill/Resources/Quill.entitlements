@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- No App Sandbox: it blocked com.apple.handwritingd XPC, which wedged
+	     PencilKit's stroke analysis on Mac Catalyst and froze nav-bar input
+	     after drawing. Personal app, not App Store distributed — sandbox is
+	     optional, and without it the network entitlements are unnecessary. -->
+</dict>
+</plist>
