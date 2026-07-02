@@ -236,11 +236,7 @@ struct SketchDetailView: View {
     }
 
     private var peerChipText: String {
-        #if targetEnvironment(macCatalyst)
-        PeerLabel.short(connectivity.peerName)
-        #else
         "\(PeerLabel.short(connectivity.peerName)) is here"
-        #endif
     }
 
     /// Paper chip: icon + current style name, opens the style menu.
