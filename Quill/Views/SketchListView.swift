@@ -114,12 +114,14 @@ struct SketchListView: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(Color(uiColor: .quaternarySystemFill),
+        // White bubble, Mac-style field: subtle border + faint lift.
+        .background(Color(uiColor: .systemBackground),
                     in: RoundedRectangle(cornerRadius: 8))
         .overlay(
             RoundedRectangle(cornerRadius: 8)
-                .stroke(Color(uiColor: .separator).opacity(0.5), lineWidth: 0.5)
+                .stroke(Color(uiColor: .separator).opacity(0.6), lineWidth: 0.5)
         )
+        .shadow(color: .black.opacity(0.06), radius: 1, y: 0.5)
     }
 
     /// Each section is one rounded card: a folder row that expands in place to
