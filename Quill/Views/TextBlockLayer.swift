@@ -55,6 +55,10 @@ struct TextBlockLayer: View {
                 blockView($block)
             }
         }
+        // Always fill the canvas: in pen mode the expanding tap-catcher is
+        // gone, and a shrunk-to-content layer gets re-centered by the parent
+        // ZStack — every block visually jumps on tool switch.
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .coordinateSpace(name: "textLayer") // stable space for drag deltas
         .allowsHitTesting(editing)
         .onChange(of: focused) { _, value in
