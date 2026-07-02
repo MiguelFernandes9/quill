@@ -171,6 +171,18 @@ final class SketchStoreTests: XCTestCase {
         let block = TextBlock(text: "t", x: 0, y: 0, size: 31)
         let decoded = try JSONDecoder().decode(TextBlock.self, from: JSONEncoder().encode(block))
         XCTAssertEqual(decoded, block)
+        XCTAssertNil(decoded.width) // auto width by default
+
+        let sized = TextBlock(text: "t", x: 0, y: 0, size: 17, width: 240)
+        let decodedSized = try JSONDecoder().decode(TextBlock.self, from: JSONEncoder().encode(sized))
+        XCTAssertEqual(decodedSized.width, 240)
+
+        // Pre-width JSON still loads (width nil).
+        let legacy = """
+        {"id":"\(UUID().uuidString)","text":"old","x":1,"y":2,"size":17}
+        """
+        XCTAssertNil(try JSONDecoder().decode(TextBlock.self,
+                                              from: legacy.data(using: .utf8)!).width)
     }
 
     // MARK: - Search

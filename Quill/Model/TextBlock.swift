@@ -35,17 +35,22 @@ struct TextBlock: Codable, Equatable, Hashable, Identifiable {
     var x: Double
     var y: Double
     var size: Double
+    /// Fixed box width from a corner-handle resize; nil = auto (content-sized
+    /// up to the default maximum).
+    var width: Double?
 
-    init(id: UUID = UUID(), text: String = "", x: Double, y: Double, size: Double = 17) {
+    init(id: UUID = UUID(), text: String = "", x: Double, y: Double,
+         size: Double = 17, width: Double? = nil) {
         self.id = id
         self.text = text
         self.x = x
         self.y = y
         self.size = size
+        self.width = width
     }
 
-    // Older blocks: no `size`; fall back to their style's size, else body.
-    enum CodingKeys: String, CodingKey { case id, text, x, y, size, style }
+    // Older blocks: no `size` (fall back to style) and no `width` (auto).
+    enum CodingKeys: String, CodingKey { case id, text, x, y, size, style, width }
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(UUID.self, forKey: .id)
@@ -58,6 +63,7 @@ struct TextBlock: Codable, Equatable, Hashable, Identifiable {
             let style = try c.decodeIfPresent(TextStyle.self, forKey: .style) ?? .body
             self.size = style.defaultSize
         }
+        width = try c.decodeIfPresent(Double.self, forKey: .width)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -67,5 +73,6 @@ struct TextBlock: Codable, Equatable, Hashable, Identifiable {
         try c.encode(x, forKey: .x)
         try c.encode(y, forKey: .y)
         try c.encode(size, forKey: .size)
+        try c.encodeIfPresent(width, forKey: .width)
     }
 }

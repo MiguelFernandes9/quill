@@ -83,10 +83,11 @@ struct TextBlockLayer: View {
             .textFieldStyle(.plain)
             .font(.system(size: value.size))
             .foregroundStyle(QuillTheme.ink)
-            // Mac idiom won't relayout a live field on a font-only change —
-            // A± resizes landed in the data but never on screen. Keying the
-            // field's identity to its size forces a rebuild per step (focus is
-            // re-asserted by the A± buttons).
+            // Mac idiom won't relayout a live field on a FONT-only change —
+            // A± steps landed in the data but never on screen, so the field's
+            // identity is keyed to its size (focus re-asserted by A±). Width
+            // is a frame change and relayouts normally — keep it OUT of the
+            // key or handle-dragging would recreate the field per tick.
             .id("field-\(value.id)-\(Int(value.size))")
             .focused($focused, equals: value.id)
             .disabled(!editing)
@@ -95,7 +96,8 @@ struct TextBlockLayer: View {
             // typed text stayed invisible until something else (A±) forced a
             // layout pass. Content-sizing forces it every change.
             .fixedSize(horizontal: false, vertical: true)
-            .frame(minWidth: 60, maxWidth: 360, alignment: .leading)
+            .frame(width: value.width.map { CGFloat(max($0, 60)) }, alignment: .leading)
+            .frame(minWidth: 60, maxWidth: value.width == nil ? 360 : nil, alignment: .leading)
             .padding(.horizontal, 11)
             .padding(.vertical, 7)
             // Idle blocks: dashed hairline over translucent white; selected:
@@ -120,10 +122,10 @@ struct TextBlockLayer: View {
             .onTapGesture {
                 if editing { focused = value.id }
             }
-            // Corner handles (visual affordance; resizing is A−/A+).
+            // Corner handles: drag to resize the block's box (A± = font size).
             .overlay {
                 if editing && isFocused {
-                    cornerHandles
+                    resizeHandles(block)
                 }
             }
             // Control strip floats centered BELOW the block (mock 4a/4b).
@@ -137,22 +139,56 @@ struct TextBlockLayer: View {
                     y: value.y + (isDragging ? dragOffset.height : 0))
     }
 
-    /// Four white circles with accent borders on the block's corners.
-    private var cornerHandles: some View {
+    /// Four white circles with accent borders on the block's corners. Dragging
+    /// any of them resizes the block's box: trailing handles move the right
+    /// edge; leading handles move the left edge (x shifts so the right edge
+    /// stays put). Height always follows the wrapped text.
+    private func resizeHandles(_ block: Binding<TextBlock>) -> some View {
         GeometryReader { geo in
-            let corners = [CGPoint(x: 0, y: 0),
-                           CGPoint(x: geo.size.width, y: 0),
-                           CGPoint(x: 0, y: geo.size.height),
-                           CGPoint(x: geo.size.width, y: geo.size.height)]
+            let corners: [(point: CGPoint, leading: Bool)] = [
+                (CGPoint(x: 0, y: 0), true),
+                (CGPoint(x: geo.size.width, y: 0), false),
+                (CGPoint(x: 0, y: geo.size.height), true),
+                (CGPoint(x: geo.size.width, y: geo.size.height), false),
+            ]
             ForEach(corners.indices, id: \.self) { index in
+                let corner = corners[index]
                 Circle()
                     .fill(.white)
                     .overlay(Circle().stroke(QuillTheme.accent, lineWidth: 1.5))
                     .frame(width: handleSize, height: handleSize)
-                    .position(corners[index])
+                    .padding(8) // real hit target around the tiny circle
+                    .contentShape(Circle())
+                    .position(corner.point)
+                    .gesture(resizeGesture(for: block, leading: corner.leading,
+                                           startWidth: geo.size.width))
             }
         }
-        .allowsHitTesting(false)
+    }
+
+    /// In-flight resize bookkeeping (width and x at drag start).
+    @State private var resizeStart: (width: CGFloat, x: Double)?
+
+    private func resizeGesture(for block: Binding<TextBlock>, leading: Bool,
+                               startWidth: CGFloat) -> some Gesture {
+        DragGesture(coordinateSpace: .named("textLayer"))
+            .onChanged { drag in
+                if resizeStart == nil {
+                    resizeStart = (startWidth, block.wrappedValue.x)
+                }
+                guard let start = resizeStart else { return }
+                let dx = drag.translation.width
+                let newWidth = max(60, min(800, leading ? start.width - dx : start.width + dx))
+                block.wrappedValue.width = Double(newWidth)
+                if leading {
+                    // Keep the right edge fixed while the left edge moves.
+                    block.wrappedValue.x = start.x + Double(start.width - newWidth)
+                }
+            }
+            .onEnded { _ in
+                resizeStart = nil
+                onChanged()
+            }
     }
 
     /// Move / resize / delete controls on the dark floating strip. Plain
