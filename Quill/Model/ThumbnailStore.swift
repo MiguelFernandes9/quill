@@ -16,24 +16,38 @@ final class ThumbnailStore: ObservableObject {
         let image: UIImage
     }
 
-    private var cache: [UUID: Entry] = [:]
+    /// Keyed by pad AND target width — the grid (~176pt) and the mini rows
+    /// (52pt) both show the same pad; a single per-pad slot would make the two
+    /// sizes evict each other.
+    private struct Key: Hashable {
+        let id: UUID
+        let width: CGFloat
+    }
+
+    private var cache: [Key: Entry] = [:]
     private let store: SketchStore
     private let renderQueue = DispatchQueue(label: "quill.thumbnails", qos: .userInitiated)
-    /// Pads currently being rendered (main-thread access only).
-    private var inFlight = Set<UUID>()
+    /// Renders currently in progress (main-thread access only).
+    private var inFlight = Set<Key>()
 
     init(store: SketchStore) {
         self.store = store
     }
 
-    /// Cached thumbnail if fresh; otherwise kicks off a background render and
-    /// returns the stale image (or nil) meanwhile.
+    /// Cached thumbnail if fresh; otherwise schedules a background render and
+    /// returns the stale image (or nil) meanwhile. Safe to call from a view
+    /// body: all bookkeeping is deferred off the render pass.
     func thumbnail(for digest: SketchDigest, size: CGSize) -> UIImage? {
-        if let entry = cache[digest.id], entry.stamp == digest.updatedAt {
+        let key = Key(id: digest.id, width: size.width)
+        if let entry = cache[key], entry.stamp == digest.updatedAt {
             return entry.image
         }
-        renderIfNeeded(digest, size: size)
-        return cache[digest.id]?.image
+        // Defer the kick-off: mutating even non-published state from inside a
+        // SwiftUI body is a hazard; one hop later is invisible to the user.
+        DispatchQueue.main.async { [weak self] in
+            self?.renderIfNeeded(digest, key: key, size: size)
+        }
+        return cache[key]?.image
     }
 
     /// Pure decision: does a cached stamp cover this digest?
@@ -56,18 +70,19 @@ final class ThumbnailStore: ObservableObject {
         return image
     }
 
-    private func renderIfNeeded(_ digest: SketchDigest, size: CGSize) {
-        guard !inFlight.contains(digest.id) else { return }
-        inFlight.insert(digest.id)
+    private func renderIfNeeded(_ digest: SketchDigest, key: Key, size: CGSize) {
+        if let entry = cache[key], entry.stamp == digest.updatedAt { return } // raced a fresh render
+        guard !inFlight.contains(key) else { return }
+        inFlight.insert(key)
         let data = store.loadDrawing(digest.id)
         let stamp = digest.updatedAt
         renderQueue.async { [weak self] in
             let image = Self.render(drawingData: data, size: size)
             DispatchQueue.main.async {
                 guard let self else { return }
-                self.inFlight.remove(digest.id)
+                self.inFlight.remove(key)
                 if let image {
-                    self.cache[digest.id] = Entry(stamp: stamp, image: image)
+                    self.cache[key] = Entry(stamp: stamp, image: image)
                     self.generation += 1
                 }
             }
