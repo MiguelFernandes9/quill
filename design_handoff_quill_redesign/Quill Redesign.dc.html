@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Karla:wght@400;500;600;700&family=Archivo:wght@400;500;600;700&family=Sora:wght@400;500;600&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f0eee9;font-family:system-ui,sans-serif}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}
+.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 system-ui,sans-serif;color:rgba(0,0,0,.55)}
+.dv-card{max-width:100%;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}
+.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}
+.dv-next{margin:22px 0 0;font:12px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.5)}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t4" data-screen-label="Turn 4 — icon tools + iPad text">
+<div class="dv-thd"><a class="dv-tid" href="#t4">4</a><span class="dv-tname"><a class="dv-oid" href="#3c">3c</a> refined — icon-only tool switcher with hover tooltips, and the Text tool on iPad</span></div>
+<div class="dv-opts">
+
+<!-- ═══════ 4a · Mac, icon switcher ═══════ -->
+<div class="dv-opt" id="4a" data-screen-label="4a Mac icon tools">
+<div class="dv-olabel"><a class="dv-oid" href="#4a">4a</a>Mac — icons only; tooltip on hover (shown on Marker), Text tool selected</div>
+<div class="dv-card" style="width:860px">
+<div style="width:860px;background:#FBFBFA;font-family:Archivo,sans-serif;color:#16161A">
+  <div style="display:flex;align-items:center;gap:12px;padding:9px 14px;border-bottom:1px solid #E7E7E2;position:relative;z-index:2">
+    <svg width="14" height="14" viewBox="0 0 10 10" fill="none" style="transform:rotate(180deg)"><path d="M3 1.5L7 5l-4 3.5" stroke="#16161A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    <span style="font-size:13.5px;font-weight:600;white-space:nowrap">Garden layout</span>
+    <div style="width:1px;height:20px;background:#E7E7E2"></div>
+    <!-- icon tool switcher -->
+    <div style="display:flex;background:#F1F1EC;border-radius:8px;padding:2px;gap:1px">
+      <div style="width:36px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center" style-hover="background:#E4E4DE"><svg width="15" height="15" viewBox="0 0 14 14" fill="none"><path d="M9.7 1.8l2.5 2.5L5 11.5l-3.2.7.7-3.2z" stroke="#44443E" stroke-width="1.4" stroke-linejoin="round"></path></svg></div>
+      <div style="width:36px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;background:#E4E4DE;position:relative">
+        <svg width="15" height="15" viewBox="0 0 14 14" fill="none"><path d="M8.5 1.5h3v3L6 10H3V7z" stroke="#44443E" stroke-width="1.4" stroke-linejoin="round"></path><path d="M3 12.5h8" stroke="#44443E" stroke-width="1.8" stroke-linecap="round"></path></svg>
+        <!-- tooltip -->
+        <div style="position:absolute;top:36px;left:50%;transform:translateX(-50%);background:#16161A;color:#fff;font-size:11px;font-weight:500;border-radius:6px;padding:4px 9px;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.2)">Marker<span style="position:absolute;top:-3px;left:50%;transform:translateX(-50%) rotate(45deg);width:6px;height:6px;background:#16161A;display:block"></span></div>
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="position:absolute;right:-2px;bottom:-4px"><path d="M2 1.5l10 4.5-4.4 1.6L6 12z" fill="#16161A" stroke="#fff" stroke-width="1"></path></svg>
+      </div>
+      <div style="width:36px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center" style-hover="background:#E4E4DE"><svg width="15" height="15" viewBox="0 0 14 14" fill="none"><path d="M9.7 1.8l2.5 2.5L5 11.5l-3.2.7.7-3.2z" stroke="#44443E" stroke-width="1.4" stroke-linejoin="round" stroke-dasharray="2 2"></path></svg></div>
+      <div style="width:36px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center" style-hover="background:#E4E4DE"><svg width="15" height="15" viewBox="0 0 14 14" fill="none"><path d="M5 12L1.8 8.8a1.5 1.5 0 0 1 0-2.1L7 1.5a1.5 1.5 0 0 1 2.1 0l3.2 3.2a1.5 1.5 0 0 1 0 2.1L8 11.2M5 12h7.5" stroke="#44443E" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"></path></svg></div>
+      <div style="width:36px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;background:#2547F4"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 3.5V1.5h10v2M7 1.5v11M5 12.5h4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div>
+    </div>
+    <div style="display:flex;gap:7px;align-items:center;padding:0 4px;opacity:.35">
+      <span style="width:17px;height:17px;border-radius:5px;background:#16161A;display:block"></span>
+      <span style="width:17px;height:17px;border-radius:5px;background:#2547F4;display:block"></span>
+      <span style="width:17px;height:17px;border-radius:5px;background:#D63030;display:block"></span>
+      <span style="width:17px;height:17px;border-radius:5px;background:#1FA84D;display:block"></span>
+      <span style="width:17px;height:17px;border-radius:5px;background:#E8850C;display:block"></span>
+      <span style="width:17px;height:17px;border-radius:5px;background:#8B3FD1;display:block"></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;width:110px;opacity:.35"><div style="flex:1;height:3px;border-radius:2px;background:#E7E7E2;position:relative"><div style="position:absolute;left:0;top:0;bottom:0;width:30%;background:#16161A;border-radius:2px"></div><div style="position:absolute;left:30%;top:50%;transform:translate(-50%,-50%);width:12px;height:12px;border-radius:50%;background:#16161A"></div></div></div>
+    <span style="flex:1"></span>
+    <div style="display:flex;align-items:center;border:1px solid #E7E7E2;border-radius:8px;background:#fff">
+      <span style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:#6b6b64">−</span>
+      <span style="min-width:44px;text-align:center;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums">125%</span>
+      <span style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:#6b6b64">+</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:5px;border:1px solid #BBE3C6;background:#EBF7EE;border-radius:8px;padding:5px 10px"><span style="width:6px;height:6px;border-radius:50%;background:#1FA84D;display:block"></span><span style="font-size:11.5px;font-weight:600;color:#177A38">iPad</span></div>
+    <div style="height:28px;border:1px solid #E7E7E2;border-radius:8px;background:#fff;display:flex;align-items:center;gap:6px;padding:0 10px"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="1.5" width="11" height="11" rx="2" stroke="#44443E" stroke-width="1.3"></rect><circle cx="4.6" cy="4.6" r=".9" fill="#44443E"></circle><circle cx="9.4" cy="4.6" r=".9" fill="#44443E"></circle><circle cx="4.6" cy="9.4" r=".9" fill="#44443E"></circle><circle cx="9.4" cy="9.4" r=".9" fill="#44443E"></circle></svg><span style="font-size:11.5px;font-weight:600;color:#44443E">Dots</span></div>
+  </div>
+  <div style="height:340px;background:radial-gradient(#DEDED6 1px,#fff 1px);background-size:14px 14px;position:relative;overflow:hidden">
+    <svg width="860" height="340" viewBox="0 0 860 340" fill="none" style="position:absolute;inset:0;opacity:.55">
+      <path d="M140 260 C 190 130, 330 100, 420 160 S 600 260, 700 150" stroke="#16161A" stroke-width="2.2" stroke-linecap="round"></path>
+      <circle cx="640" cy="110" r="24" stroke="#D63030" stroke-width="2"></circle>
+    </svg>
+    <div style="position:absolute;left:200px;top:110px">
+      <div style="border:1.5px solid #2547F4;border-radius:6px;background:rgba(255,255,255,.85);padding:8px 12px;font-size:16px;position:relative">veg bed — 2m × 1m
+        <span style="position:absolute;left:-4px;top:-4px;width:7px;height:7px;border-radius:50%;background:#fff;border:1.5px solid #2547F4"></span>
+        <span style="position:absolute;right:-4px;top:-4px;width:7px;height:7px;border-radius:50%;background:#fff;border:1.5px solid #2547F4"></span>
+        <span style="position:absolute;left:-4px;bottom:-4px;width:7px;height:7px;border-radius:50%;background:#fff;border:1.5px solid #2547F4"></span>
+        <span style="position:absolute;right:-4px;bottom:-4px;width:7px;height:7px;border-radius:50%;background:#fff;border:1.5px solid #2547F4"></span>
+      </div>
+      <div style="position:absolute;left:50%;bottom:-44px;transform:translateX(-50%);display:flex;align-items:center;background:#16161A;border-radius:9px;box-shadow:0 4px 14px rgba(0,0,0,.2);overflow:hidden">
+        <span style="width:34px;height:32px;display:flex;align-items:center;justify-content:center;border-right:1px solid rgba(255,255,255,.15)"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12M7 1L5 3m2-2l2 2M7 13l-2-2m2 2l2-2M1 7l2-2m-2 2l2 2M13 7l-2-2m2 2l-2 2" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+        <span style="width:34px;height:32px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;border-right:1px solid rgba(255,255,255,.15)">A−</span>
+        <span style="width:34px;height:32px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#fff;border-right:1px solid rgba(255,255,255,.15)">A+</span>
+        <span style="width:34px;height:32px;display:flex;align-items:center;justify-content:center"><svg width="13" height="14" viewBox="0 0 13 14" fill="none"><path d="M1.5 3.5h10m-8.5 0V2a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v1.5m-7.5 0l.7 8.1a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9l.7-8.1" stroke="#FF7A6E" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+      </div>
+    </div>
+    <div style="position:absolute;left:560px;top:230px;border:1px dashed #C9C9C1;border-radius:6px;background:rgba(255,255,255,.7);padding:7px 11px;font-size:14px;color:#44443E">move rose here?</div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ═══════ 4b · iPad text tool ═══════ -->
+<div class="dv-opt" id="4b" data-screen-label="4b iPad text tool">
+<div class="dv-olabel"><a class="dv-oid" href="#4b">4b</a>iPad — Text button in the nav becomes the same tool (active = blue); Pencil palette dims while it's on; touch-sized strip</div>
+<div style="background:#0F0F10;border-radius:30px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.25)">
+<div style="width:960px;height:640px;border-radius:18px;overflow:hidden;background:#FBFBFA;font-family:Archivo,sans-serif;color:#16161A;display:flex;flex-direction:column;position:relative">
+  <div style="height:26px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:12px;font-weight:600;flex:none">
+    <span>9:41</span>
+    <span style="display:flex;align-items:center;gap:6px">
+      <svg width="15" height="11" viewBox="0 0 15 11" fill="none"><path d="M7.5 8.6a1.4 1.4 0 1 1 0 2.4 1.4 1.4 0 0 1 0-2.4zM4.6 7a4.4 4.4 0 0 1 5.8 0M2 4.4a8 8 0 0 1 11 0" stroke="#16161A" stroke-width="1.3" stroke-linecap="round"></path></svg>
+      <svg width="22" height="11" viewBox="0 0 22 11" fill="none"><rect x=".5" y=".5" width="18" height="10" rx="2.5" stroke="#16161A" opacity=".4"></rect><rect x="2" y="2" width="12" height="7" rx="1.2" fill="#16161A"></rect><path d="M20.5 3.5v4a2 2 0 0 0 0-4z" fill="#16161A" opacity=".4"></path></svg>
+    </span>
+  </div>
+  <div style="height:50px;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid #E7E7E2;flex:none;background:#FBFBFA">
+    <div style="display:flex;align-items:center;gap:5px;color:#2547F4;font-size:15px;font-weight:500">
+      <svg width="12" height="16" viewBox="0 0 10 16" fill="none"><path d="M8 1.5L2 8l6 6.5" stroke="#2547F4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>Pads
+    </div>
+    <span style="flex:1"></span>
+    <span style="font-size:15px;font-weight:600;position:absolute;left:50%;transform:translateX(-50%)">Garden layout</span>
+    <div style="display:flex;align-items:center;gap:5px;border:1px solid #BBE3C6;background:#EBF7EE;border-radius:9px;padding:6px 11px"><span style="width:6px;height:6px;border-radius:50%;background:#1FA84D;display:block"></span><span style="font-size:12.5px;font-weight:600;color:#177A38">Mac is here</span></div>
+    <div style="width:44px;height:38px;border-radius:9px;background:#2547F4;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 3px #EDF0FE"><svg width="16" height="16" viewBox="0 0 14 14" fill="none"><path d="M2 3.5V1.5h10v2M7 1.5v11M5 12.5h4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div>
+    <div style="height:38px;border:1px solid #E7E7E2;border-radius:9px;background:#fff;display:flex;align-items:center;gap:7px;padding:0 12px"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="1.5" width="11" height="11" rx="2" stroke="#44443E" stroke-width="1.3"></rect><circle cx="4.6" cy="4.6" r=".9" fill="#44443E"></circle><circle cx="9.4" cy="4.6" r=".9" fill="#44443E"></circle><circle cx="4.6" cy="9.4" r=".9" fill="#44443E"></circle><circle cx="9.4" cy="9.4" r=".9" fill="#44443E"></circle></svg><span style="font-size:12.5px;font-weight:600;color:#44443E">Dots</span></div>
+  </div>
+  <div style="flex:1;background:radial-gradient(#DEDED6 1px,#fff 1px);background-size:14px 14px;position:relative;overflow:hidden">
+    <svg width="960" height="520" viewBox="0 0 960 520" fill="none" style="position:absolute;inset:0;opacity:.55">
+      <path d="M170 380 C 230 190, 400 150, 500 230 S 700 380, 810 210" stroke="#16161A" stroke-width="2.4" stroke-linecap="round"></path>
+      <circle cx="740" cy="150" r="30" stroke="#D63030" stroke-width="2.2"></circle>
+    </svg>
+    <!-- selected block + touch strip -->
+    <div style="position:absolute;left:230px;top:150px">
+      <div style="border:1.5px solid #2547F4;border-radius:8px;background:rgba(255,255,255,.9);padding:12px 16px;font-size:19px;position:relative">veg bed — 2m × 1m
+        <span style="position:absolute;left:-5px;top:-5px;width:9px;height:9px;border-radius:50%;background:#fff;border:1.5px solid #2547F4"></span>
+        <span style="position:absolute;right:-5px;top:-5px;width:9px;height:9px;border-radius:50%;background:#fff;border:1.5px solid #2547F4"></span>
+        <span style="position:absolute;left:-5px;bottom:-5px;width:9px;height:9px;border-radius:50%;background:#fff;border:1.5px solid #2547F4"></span>
+        <span style="position:absolute;right:-5px;bottom:-5px;width:9px;height:9px;border-radius:50%;background:#fff;border:1.5px solid #2547F4"></span>
+      </div>
+      <div style="position:absolute;left:50%;bottom:-58px;transform:translateX(-50%);display:flex;align-items:center;background:#16161A;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.25);overflow:hidden">
+        <span style="width:48px;height:44px;display:flex;align-items:center;justify-content:center;border-right:1px solid rgba(255,255,255,.15)"><svg width="17" height="17" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12M7 1L5 3m2-2l2 2M7 13l-2-2m2 2l2-2M1 7l2-2m-2 2l2 2M13 7l-2-2m2 2l-2 2" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+        <span style="width:48px;height:44px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#fff;border-right:1px solid rgba(255,255,255,.15)">A−</span>
+        <span style="width:48px;height:44px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:600;color:#fff;border-right:1px solid rgba(255,255,255,.15)">A+</span>
+        <span style="width:48px;height:44px;display:flex;align-items:center;justify-content:center"><svg width="15" height="16" viewBox="0 0 13 14" fill="none"><path d="M1.5 3.5h10m-8.5 0V2a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v1.5m-7.5 0l.7 8.1a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9l.7-8.1" stroke="#FF7A6E" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+      </div>
+    </div>
+    <div style="position:absolute;left:640px;top:320px;border:1px dashed #C9C9C1;border-radius:8px;background:rgba(255,255,255,.75);padding:10px 14px;font-size:17px;color:#44443E">move rose here?</div>
+    <!-- dimmed system palette -->
+    <div style="position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;align-items:center;gap:14px;background:rgba(250,250,248,.92);border:1px solid #E0E0DA;border-radius:16px;padding:10px 18px;box-shadow:0 8px 28px rgba(0,0,0,.16);opacity:.35">
+      <div style="display:flex;align-items:flex-end;gap:10px;height:34px">
+        <div style="width:16px;height:44px;border-radius:8px 8px 3px 3px;background:linear-gradient(#16161A 0 12px,#C8C8C0 12px);margin-bottom:-6px"></div>
+        <div style="width:16px;height:34px;border-radius:8px 8px 3px 3px;background:linear-gradient(#E8850C 0 12px,#D6D6CE 12px)"></div>
+        <div style="width:16px;height:34px;border-radius:8px 8px 3px 3px;background:linear-gradient(#8A8A82 0 12px,#D6D6CE 12px)"></div>
+        <div style="width:16px;height:34px;border-radius:3px;background:#D6D6CE"></div>
+      </div>
+      <div style="width:1px;height:26px;background:#E0E0DA"></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="width:18px;height:18px;border-radius:50%;background:#16161A;display:block"></span>
+        <span style="width:18px;height:18px;border-radius:50%;background:#2547F4;display:block"></span>
+        <span style="width:18px;height:18px;border-radius:50%;background:#D63030;display:block"></span>
+        <span style="width:18px;height:18px;border-radius:50%;background:#1FA84D;display:block"></span>
+        <span style="width:18px;height:18px;border-radius:50%;background:#E8850C;display:block"></span>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Try next: "make <a class="dv-oid" href="#4a">4a</a>/<a class="dv-oid" href="#4b">4b</a> an interactive prototype" · "apply the icon switcher everywhere" · "hand this off as SwiftUI notes"</p>
+</section>
+
+<section class="dv-turn" id="t3" data-screen-label="Turn 3 — text mode">
+<div class="dv-thd"><a class="dv-tid" href="#t3">3</a><span class="dv-tname">Text mode on the Mac canvas (Studio) — three treatments of the same features: T toggle, tap to add, drag / resize / delete a block, pen paused</span></div>
+<div class="dv-opts">
+
+<!-- ═══════ 3a · Faithful, restyled ═══════ -->
+<div class="dv-opt" id="3a" data-screen-label="3a text mode strip">
+<div class="dv-olabel"><a class="dv-oid" href="#3a">3a</a>Like today — T toggles the mode, control strip floats above the selected block, pen tools dim</div>
+<div class="dv-card" style="width:860px">
+<div style="width:860px;background:#FBFBFA;font-family:Archivo,sans-serif;color:#16161A">
+  <div style="display:flex;align-items:center;gap:12px;padding:9px 14px;border-bottom:1px solid #E7E7E2">
+    <svg width="14" height="14" viewBox="0 0 10 10" fill="none" style="transform:rotate(180deg)"><path d="M3 1.5L7 5l-4 3.5" stroke="#16161A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    <span style="font-size:13.5px;font-weight:600;white-space:nowrap">Garden layout</span>
+    <div style="width:1px;height:20px;background:#E7E7E2"></div>
+    <div style="display:flex;background:#F1F1EC;border-radius:8px;padding:2px;opacity:.35">
+      <div style="padding:5px 12px;border-radius:6px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.08);font-size:12px;font-weight:600">Pen</div>
+      <div style="padding:5px 12px;border-radius:6px;font-size:12px;color:#6b6b64">Marker</div>
+      <div style="padding:5px 12px;border-radius:6px;font-size:12px;color:#6b6b64">Pencil</div>
+      <div style="padding:5px 12px;border-radius:6px;font-size:12px;color:#6b6b64">Eraser</div>
+    </div>
+    <div style="display:flex;gap:7px;align-items:center;padding:0 4px;opacity:.35">
+      <span style="width:17px;height:17px;border-radius:5px;background:#16161A;display:block"></span>
+      <span style="width:17px;height:17px;border-radius:5px;background:#2547F4;display:block"></span>
+      <span style="width:17px;height:17px;border-radius:5px;background:#D63030;display:block"></span>
+      <span style="width:17px;height:17px;border-radius:5px;background:#1FA84D;display:block"></span>
+      <span style="width:17px;height:17px;border-radius:5px;background:#E8850C;display:block"></span>
+      <span style="width:17px;height:17px;border-radius:5px;background:#8B3FD1;display:block"></span>
+    </div>
+    <span style="flex:1"></span>
+    <div style="display:flex;align-items:center;border:1px solid #E7E7E2;border-radius:8px;background:#fff">
+      <span style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:#6b6b64">−</span>
+      <span style="min-width:44px;text-align:center;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums">125%</span>
+      <span style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:#6b6b64">+</span>
+    </div>
+    <div style="width:30px;height:28px;border-radius:8px;background:#2547F4;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13.5px;color:#fff;box-shadow:0 0 0 3px #EDF0FE">T</div>
+    <div style="height:28px;border:1px solid #E7E7E2;border-radius:8px;background:#fff;display:flex;align-items:center;gap:6px;padding:0 10px;opacity:.35"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="1.5" width="11" height="11" rx="2" stroke="#44443E" stroke-width="1.3"></rect><circle cx="4.6" cy="4.6" r=".9" fill="#44443E"></circle><circle cx="9.4" cy="4.6" r=".9" fill="#44443E"></circle><circle cx="4.6" cy="9.4" r=".9" fill="#44443E"></circle><circle cx="9.4" cy="9.4" r=".9" fill="#44443E"></circle></svg><span style="font-size:11.5px;font-weight:600;color:#44443E">Dots</span></div>
+  </div>
+  <div style="height:340px;background:radial-gradient(#DEDED6 1px,#fff 1px);background-size:14px 14px;position:relative;overflow:hidden">
+    <svg width="860" height="340" viewBox="0 0 860 340" fill="none" style="position:absolute;inset:0;opacity:.55">
+      <path d="M140 260 C 190 130, 330 100, 420 160 S 600 260, 700 150" stroke="#16161A" stroke-width="2.2" stroke-linecap="round"></path>
+      <circle cx="640" cy="110" r="24" stroke="#D63030" stroke-width="2"></circle>
+    </svg>
+    <!-- selected block + control strip -->
+    <div style="position:absolute;left:180px;top:120px">
+      <div style="position:absolute;left:50%;top:-44px;transform:translateX(-50%);display:flex;align-items:center;background:#fff;border:1px solid #E7E7E2;border-radius:9px;box-shadow:0 4px 14px rgba(0,0,0,.12);overflow:hidden">
+        <span style="width:34px;height:32px;display:flex;align-items:center;justify-content:center;border-right:1px solid #F1F1EC"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12M7 1L5 3m2-2l2 2M7 13l-2-2m2 2l2-2M1 7l2-2m-2 2l2 2M13 7l-2-2m2 2l-2 2" stroke="#44443E" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+        <span style="width:34px;height:32px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#44443E;border-right:1px solid #F1F1EC">A−</span>
+        <span style="width:34px;height:32px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#44443E;border-right:1px solid #F1F1EC">A+</span>
+        <span style="width:34px;height:32px;display:flex;align-items:center;justify-content:center"><svg width="13" height="14" viewBox="0 0 13 14" fill="none"><path d="M1.5 3.5h10m-8.5 0V2a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v1.5m-7.5 0l.7 8.1a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9l.7-8.1" stroke="#D63030" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+      </div>
+      <div style="border:1.5px solid #2547F4;border-radius:6px;background:rgba(255,255,255,.85);padding:8px 12px;font-size:16px;box-shadow:0 0 0 3px #EDF0FE">veg bed — 2m × 1m</div>
+    </div>
+    <!-- idle block -->
+    <div style="position:absolute;left:560px;top:230px;border:1px dashed #C9C9C1;border-radius:6px;background:rgba(255,255,255,.7);padding:7px 11px;font-size:14px;color:#44443E">move rose here?</div>
+    <!-- hint -->
+    <div style="position:absolute;left:50%;bottom:12px;transform:translateX(-50%);background:#16161A;color:#fff;border-radius:999px;padding:6px 14px;font-size:11.5px">Text mode — click empty paper to add a block · Esc deselects</div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ═══════ 3b · Toolbar swaps ═══════ -->
+<div class="dv-opt" id="3b" data-screen-label="3b toolbar swaps">
+<div class="dv-olabel"><a class="dv-oid" href="#3b">3b</a>Toolbar swaps — pen tools slide out, text controls slide in; block edited in place, side drag handle</div>
+<div class="dv-card" style="width:860px">
+<div style="width:860px;background:#FBFBFA;font-family:Archivo,sans-serif;color:#16161A">
+  <div style="display:flex;align-items:center;gap:12px;padding:9px 14px;border-bottom:1px solid #E7E7E2">
+    <svg width="14" height="14" viewBox="0 0 10 10" fill="none" style="transform:rotate(180deg)"><path d="M3 1.5L7 5l-4 3.5" stroke="#16161A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    <span style="font-size:13.5px;font-weight:600;white-space:nowrap">Garden layout</span>
+    <div style="width:1px;height:20px;background:#E7E7E2"></div>
+    <div style="display:flex;align-items:center;gap:5px;background:#EDF0FE;border-radius:8px;padding:5px 11px;color:#2547F4;font-size:12px;font-weight:600"><span style="font-size:13px">T</span> Text mode</div>
+    <div style="display:flex;align-items:center;border:1px solid #E7E7E2;border-radius:8px;background:#fff">
+      <span style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#44443E">A−</span>
+      <span style="min-width:36px;text-align:center;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;border-left:1px solid #F1F1EC;border-right:1px solid #F1F1EC;align-self:stretch;display:flex;align-items:center;justify-content:center">16</span>
+      <span style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#44443E">A+</span>
+    </div>
+    <div style="width:30px;height:28px;border:1px solid #E7E7E2;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center"><svg width="13" height="14" viewBox="0 0 13 14" fill="none"><path d="M1.5 3.5h10m-8.5 0V2a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v1.5m-7.5 0l.7 8.1a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9l.7-8.1" stroke="#D63030" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"></path></svg></div>
+    <span style="flex:1"></span>
+    <div style="display:flex;align-items:center;border:1px solid #E7E7E2;border-radius:8px;background:#fff">
+      <span style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:#6b6b64">−</span>
+      <span style="min-width:44px;text-align:center;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums">125%</span>
+      <span style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:#6b6b64">+</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;background:#2547F4;color:#fff;border-radius:8px;padding:6px 14px;font-size:12.5px;font-weight:600">Done</div>
+  </div>
+  <div style="height:340px;background:radial-gradient(#DEDED6 1px,#fff 1px);background-size:14px 14px;position:relative;overflow:hidden">
+    <svg width="860" height="340" viewBox="0 0 860 340" fill="none" style="position:absolute;inset:0;opacity:.55">
+      <path d="M140 260 C 190 130, 330 100, 420 160 S 600 260, 700 150" stroke="#16161A" stroke-width="2.2" stroke-linecap="round"></path>
+      <circle cx="640" cy="110" r="24" stroke="#D63030" stroke-width="2"></circle>
+    </svg>
+    <div style="position:absolute;left:200px;top:130px;display:flex;align-items:stretch">
+      <div style="width:22px;border-radius:6px 0 0 6px;background:#2547F4;display:flex;align-items:center;justify-content:center;cursor:grab"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><circle cx="2" cy="2" r="1.2" fill="#fff"></circle><circle cx="6" cy="2" r="1.2" fill="#fff"></circle><circle cx="2" cy="7" r="1.2" fill="#fff"></circle><circle cx="6" cy="7" r="1.2" fill="#fff"></circle><circle cx="2" cy="12" r="1.2" fill="#fff"></circle><circle cx="6" cy="12" r="1.2" fill="#fff"></circle></svg></div>
+      <div style="border:1.5px solid #2547F4;border-left:none;border-radius:0 6px 6px 0;background:#fff;padding:8px 12px;font-size:16px">veg bed — 2m × 1m<span style="display:inline-block;width:1.5px;height:16px;background:#2547F4;vertical-align:-2px;margin-left:1px"></span></div>
+    </div>
+    <div style="position:absolute;left:560px;top:230px;border:1px dashed #C9C9C1;border-radius:6px;background:rgba(255,255,255,.7);padding:7px 11px;font-size:14px;color:#44443E">move rose here?</div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ═══════ 3c · Text is a tool ═══════ -->
+<div class="dv-opt" id="3c" data-screen-label="3c text as tool">
+<div class="dv-olabel"><a class="dv-oid" href="#3c">3c</a>No mode at all — Text joins the tool switcher as a 5th tool; strip sits under the selected block</div>
+<div class="dv-card" style="width:860px">
+<div style="width:860px;background:#FBFBFA;font-family:Archivo,sans-serif;color:#16161A">
+  <div style="display:flex;align-items:center;gap:12px;padding:9px 14px;border-bottom:1px solid #E7E7E2">
+    <svg width="14" height="14" viewBox="0 0 10 10" fill="none" style="transform:rotate(180deg)"><path d="M3 1.5L7 5l-4 3.5" stroke="#16161A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    <span style="font-size:13.5px;font-weight:600;white-space:nowrap">Garden layout</span>
+    <div style="width:1px;height:20px;background:#E7E7E2"></div>
+    <div style="display:flex;background:#F1F1EC;border-radius:8px;padding:2px">
+      <div style="padding:5px 12px;border-radius:6px;font-size:12px;color:#6b6b64">Pen</div>
+      <div style="padding:5px 12px;border-radius:6px;font-size:12px;color:#6b6b64">Marker</div>
+      <div style="padding:5px 12px;border-radius:6px;font-size:12px;color:#6b6b64">Pencil</div>
+      <div style="padding:5px 12px;border-radius:6px;font-size:12px;color:#6b6b64">Eraser</div>
+      <div style="padding:5px 12px;border-radius:6px;background:#2547F4;color:#fff;font-size:12px;font-weight:600">Text</div>
+    </div>
+    <div style="display:flex;gap:7px;align-items:center;padding:0 4px;opacity:.35">
+      <span style="width:17px;height:17px;border-radius:5px;background:#16161A;display:block"></span>
+      <span style="width:17px;height:17px;border-radius:5px;background:#2547F4;display:block"></span>
+      <span style="width:17px;height:17px;border-radius:5px;background:#D63030;display:block"></span>
+      <span style="width:17px;height:17px;border-radius:5px;background:#1FA84D;display:block"></span>
+      <span style="width:17px;height:17px;border-radius:5px;background:#E8850C;display:block"></span>
+      <span style="width:17px;height:17px;border-radius:5px;background:#8B3FD1;display:block"></span>
+    </div>
+    <span style="flex:1"></span>
+    <div style="display:flex;align-items:center;border:1px solid #E7E7E2;border-radius:8px;background:#fff">
+      <span style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:#6b6b64">−</span>
+      <span style="min-width:44px;text-align:center;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums">125%</span>
+      <span style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:#6b6b64">+</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:5px;border:1px solid #BBE3C6;background:#EBF7EE;border-radius:8px;padding:5px 10px"><span style="width:6px;height:6px;border-radius:50%;background:#1FA84D;display:block"></span><span style="font-size:11.5px;font-weight:600;color:#177A38">iPad</span></div>
+    <div style="height:28px;border:1px solid #E7E7E2;border-radius:8px;background:#fff;display:flex;align-items:center;gap:6px;padding:0 10px"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="1.5" width="11" height="11" rx="2" stroke="#44443E" stroke-width="1.3"></rect><circle cx="4.6" cy="4.6" r=".9" fill="#44443E"></circle><circle cx="9.4" cy="4.6" r=".9" fill="#44443E"></circle><circle cx="4.6" cy="9.4" r=".9" fill="#44443E"></circle><circle cx="9.4" cy="9.4" r=".9" fill="#44443E"></circle></svg><span style="font-size:11.5px;font-weight:600;color:#44443E">Dots</span></div>
+  </div>
+  <div style="height:340px;background:radial-gradient(#DEDED6 1px,#fff 1px);background-size:14px 14px;position:relative;overflow:hidden">
+    <svg width="860" height="340" viewBox="0 0 860 340" fill="none" style="position:absolute;inset:0;opacity:.55">
+      <path d="M140 260 C 190 130, 330 100, 420 160 S 600 260, 700 150" stroke="#16161A" stroke-width="2.2" stroke-linecap="round"></path>
+      <circle cx="640" cy="110" r="24" stroke="#D63030" stroke-width="2"></circle>
+    </svg>
+    <div style="position:absolute;left:200px;top:110px">
+      <div style="border:1.5px solid #2547F4;border-radius:6px;background:rgba(255,255,255,.85);padding:8px 12px;font-size:16px;position:relative">veg bed — 2m × 1m
+        <span style="position:absolute;left:-4px;top:-4px;width:7px;height:7px;border-radius:50%;background:#fff;border:1.5px solid #2547F4"></span>
+        <span style="position:absolute;right:-4px;top:-4px;width:7px;height:7px;border-radius:50%;background:#fff;border:1.5px solid #2547F4"></span>
+        <span style="position:absolute;left:-4px;bottom:-4px;width:7px;height:7px;border-radius:50%;background:#fff;border:1.5px solid #2547F4"></span>
+        <span style="position:absolute;right:-4px;bottom:-4px;width:7px;height:7px;border-radius:50%;background:#fff;border:1.5px solid #2547F4"></span>
+      </div>
+      <div style="position:absolute;left:50%;bottom:-44px;transform:translateX(-50%);display:flex;align-items:center;background:#16161A;border-radius:9px;box-shadow:0 4px 14px rgba(0,0,0,.2);overflow:hidden">
+        <span style="width:34px;height:32px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;border-right:1px solid rgba(255,255,255,.15)">A−</span>
+        <span style="width:34px;height:32px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#fff;border-right:1px solid rgba(255,255,255,.15)">A+</span>
+        <span style="width:34px;height:32px;display:flex;align-items:center;justify-content:center"><svg width="13" height="14" viewBox="0 0 13 14" fill="none"><path d="M1.5 3.5h10m-8.5 0V2a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v1.5m-7.5 0l.7 8.1a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9l.7-8.1" stroke="#FF7A6E" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+      </div>
+    </div>
+    <div style="position:absolute;left:560px;top:230px;border:1px dashed #C9C9C1;border-radius:6px;background:rgba(255,255,255,.7);padding:7px 11px;font-size:14px;color:#44443E">move rose here?</div>
+    <div style="position:absolute;left:640px;top:120px;width:1.5px;height:18px;background:#2547F4;opacity:.7"></div>
+    <div style="position:absolute;left:648px;top:122px;font-size:11px;color:#9C9C94">click to place</div>
+  </div>
+</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Try next: "go with <a class="dv-oid" href="#3a">3a</a>" · "combine <a class="dv-oid" href="#3c">3c</a>'s tool tab with <a class="dv-oid" href="#3a">3a</a>'s strip" · "show text mode on iPad"</p>
+</section>
+
+<section class="dv-turn" id="t2" data-screen-label="Turn 2 — Studio developed">
+<div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">Studio (<a class="dv-oid" href="#1b">1b</a>) developed — iPad screens + Mac states</span></div>
+<div class="dv-opts">
+
+<!-- ═══════ 2a · iPad home ═══════ -->
+<div class="dv-opt" id="2a" data-screen-label="2a iPad home">
+<div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a>iPad — home, same sidebar + grid, touch-sized</div>
+<div style="background:#0F0F10;border-radius:30px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.25)">
+<div style="width:960px;height:640px;border-radius:18px;overflow:hidden;background:#FBFBFA;font-family:Archivo,sans-serif;color:#16161A;display:flex;flex-direction:column">
+  <div style="height:26px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:12px;font-weight:600;flex:none">
+    <span>9:41</span>
+    <span style="display:flex;align-items:center;gap:6px">
+      <svg width="15" height="11" viewBox="0 0 15 11" fill="none"><path d="M7.5 8.6a1.4 1.4 0 1 1 0 2.4 1.4 1.4 0 0 1 0-2.4zM4.6 7a4.4 4.4 0 0 1 5.8 0M2 4.4a8 8 0 0 1 11 0" stroke="#16161A" stroke-width="1.3" stroke-linecap="round"></path></svg>
+      <svg width="22" height="11" viewBox="0 0 22 11" fill="none"><rect x=".5" y=".5" width="18" height="10" rx="2.5" stroke="#16161A" opacity=".4"></rect><rect x="2" y="2" width="12" height="7" rx="1.2" fill="#16161A"></rect><path d="M20.5 3.5v4a2 2 0 0 0 0-4z" fill="#16161A" opacity=".4"></path></svg>
+    </span>
+  </div>
+  <div style="flex:1;display:flex;min-height:0">
+    <!-- sidebar -->
+    <div style="width:236px;border-right:1px solid #E7E7E2;display:flex;flex-direction:column;padding:10px 12px 16px;box-sizing:border-box;flex:none">
+      <div style="display:flex;align-items:center;gap:8px;border:1px solid #E7E7E2;border-radius:10px;padding:11px 12px;margin-bottom:14px;background:#fff">
+        <svg width="14" height="14" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="#9C9C94" stroke-width="1.5"></circle><path d="M8.5 8.5l3 3" stroke="#9C9C94" stroke-width="1.5" stroke-linecap="round"></path></svg>
+        <span style="font-size:14px;color:#9C9C94">Search</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;border-radius:10px;background:#EDF0FE;color:#2547F4;font-weight:600;font-size:15px;box-sizing:border-box">All pads<span style="flex:1"></span><span style="font-size:12px;font-weight:500">9</span></div>
+      <div style="display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;border-radius:10px;font-size:15px;color:#44443E;box-sizing:border-box">Unsorted<span style="flex:1"></span><span style="font-size:12px;color:#9C9C94">2</span></div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;color:#9C9C94;margin:12px 12px 4px">FOLDERS</div>
+      <div style="display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;border-radius:10px;font-size:15px;color:#44443E;box-sizing:border-box">Home projects<span style="flex:1"></span><span style="font-size:12px;color:#9C9C94">3</span></div>
+      <div style="display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;border-radius:10px;font-size:15px;color:#44443E;box-sizing:border-box">Maths scratch<span style="flex:1"></span><span style="font-size:12px;color:#9C9C94">4</span></div>
+      <div style="display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;border-radius:10px;font-size:14px;color:#9C9C94;box-sizing:border-box">+ New folder</div>
+      <span style="flex:1"></span>
+      <div style="display:flex;align-items:center;gap:7px;border-top:1px solid #E7E7E2;padding:14px 6px 0"><span style="width:8px;height:8px;border-radius:50%;background:#1FA84D;display:block"></span><span style="font-size:13px;color:#44443E">MacBook · connected</span></div>
+    </div>
+    <!-- main -->
+    <div style="flex:1;padding:14px 22px 22px;box-sizing:border-box;overflow:hidden">
+      <div style="display:flex;align-items:center;margin-bottom:16px">
+        <div style="font-weight:600;font-size:17px">All pads</div>
+        <span style="flex:1"></span>
+        <div style="display:flex;align-items:center;gap:7px;background:#2547F4;color:#fff;border-radius:10px;height:44px;padding:0 18px;font-size:15px;font-weight:600;box-sizing:border-box">＋ New pad</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+        <div style="border:1px solid #E7E7E2;border-radius:12px;background:#fff;overflow:hidden">
+          <div style="height:128px;background:radial-gradient(#DEDED6 1px,#fff 1px);background-size:9px 9px;position:relative;display:flex;align-items:center;justify-content:center">
+            <svg width="140" height="98" viewBox="0 0 120 84" fill="none"><path d="M14 64l26-36 20 24 14-16 30 28" stroke="#16161A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="90" cy="20" r="8" stroke="#2547F4" stroke-width="1.6"></circle></svg>
+            <div style="position:absolute;top:9px;right:9px;display:flex;align-items:center;gap:5px;background:#16161A;color:#fff;border-radius:999px;padding:4px 9px"><svg width="12" height="9" viewBox="0 0 14 10" fill="none"><path d="M1 5s2.2-4 6-4 6 4 6 4-2.2 4-6 4-6-4-6-4z" stroke="#fff" stroke-width="1.3"></path><circle cx="7" cy="5" r="1.7" fill="#fff"></circle></svg><span style="font-size:10.5px;font-weight:600">Mac</span></div>
+          </div>
+          <div style="padding:12px 14px;border-top:1px solid #E7E7E2"><div style="font-size:15px;font-weight:600">Kitchen reno ideas</div><div style="font-size:12.5px;color:#9C9C94;margin-top:3px">2h ago · Home projects</div></div>
+        </div>
+        <div style="border:1px solid #E7E7E2;border-radius:12px;background:#fff;overflow:hidden">
+          <div style="height:128px;background:repeating-linear-gradient(#fff 0 12px,#EFEFEA 12px 13px);display:flex;align-items:center;justify-content:center">
+            <svg width="140" height="98" viewBox="0 0 120 84" fill="none"><path d="M18 66c10-26 26-40 42-40s30 10 40 5" stroke="#16161A" stroke-width="1.8" stroke-linecap="round"></path><path d="M34 66c5-10 10-15 20-17" stroke="#2547F4" stroke-width="1.5" stroke-linecap="round"></path></svg>
+          </div>
+          <div style="padding:12px 14px;border-top:1px solid #E7E7E2"><div style="font-size:15px;font-weight:600">Garden layout</div><div style="font-size:12.5px;color:#9C9C94;margin-top:3px">Yesterday · Home projects</div></div>
+        </div>
+        <div style="border:1px solid #E7E7E2;border-radius:12px;background:#fff;overflow:hidden">
+          <div style="height:128px;display:flex;align-items:center;justify-content:center">
+            <svg width="140" height="98" viewBox="0 0 120 84" fill="none"><rect x="30" y="18" width="38" height="30" rx="2" stroke="#16161A" stroke-width="1.7"></rect><path d="M68 26h20m-20 12h20M38 48v16m22-16v16" stroke="#16161A" stroke-width="1.7" stroke-linecap="round"></path></svg>
+          </div>
+          <div style="padding:12px 14px;border-top:1px solid #E7E7E2"><div style="font-size:15px;font-weight:600">Workbench plan</div><div style="font-size:12.5px;color:#9C9C94;margin-top:3px">3d ago · Home projects</div></div>
+        </div>
+        <div style="border:1px solid #E7E7E2;border-radius:12px;background:#fff;overflow:hidden">
+          <div style="height:128px;background:linear-gradient(#EFEFEA 1px,transparent 1px),linear-gradient(90deg,#EFEFEA 1px,transparent 1px);background-size:12px 12px;display:flex;align-items:center;justify-content:center">
+            <svg width="140" height="98" viewBox="0 0 120 84" fill="none"><path d="M20 60l18-18m0 18L20 42M52 52h20M52 60h20" stroke="#16161A" stroke-width="1.7" stroke-linecap="round"></path><path d="M84 64c0-14 8-26 16-30" stroke="#2547F4" stroke-width="1.5" stroke-linecap="round"></path></svg>
+          </div>
+          <div style="padding:12px 14px;border-top:1px solid #E7E7E2"><div style="font-size:15px;font-weight:600">Integrals week 4</div><div style="font-size:12.5px;color:#9C9C94;margin-top:3px">4d ago · Maths scratch</div></div>
+        </div>
+        <div style="border:1px solid #E7E7E2;border-radius:12px;background:#fff;overflow:hidden">
+          <div style="height:128px;display:flex;align-items:center;justify-content:center">
+            <svg width="140" height="98" viewBox="0 0 120 84" fill="none"><path d="M20 44h24l6-14 8 28 6-14h36" stroke="#16161A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          </div>
+          <div style="padding:12px 14px;border-top:1px solid #E7E7E2"><div style="font-size:15px;font-weight:600">Circuit sketch</div><div style="font-size:12.5px;color:#9C9C94;margin-top:3px">1w ago · Unsorted</div></div>
+        </div>
+        <div style="border:1px dashed #D6D6CE;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:180px;color:#9C9C94">
+          <span style="font-size:24px;line-height:1">＋</span><span style="font-size:14px;font-weight:600">New pad</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ═══════ 2b · iPad canvas ═══════ -->
+<div class="dv-opt" id="2b" data-screen-label="2b iPad canvas">
+<div class="dv-olabel"><a class="dv-oid" href="#2b">2b</a>iPad — drawing screen; Apple's system Pencil palette stays</div>
+<div style="background:#0F0F10;border-radius:30px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.25)">
+<div style="width:960px;height:640px;border-radius:18px;overflow:hidden;background:#FBFBFA;font-family:Archivo,sans-serif;color:#16161A;display:flex;flex-direction:column;position:relative">
+  <div style="height:26px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:12px;font-weight:600;flex:none">
+    <span>9:41</span>
+    <span style="display:flex;align-items:center;gap:6px">
+      <svg width="15" height="11" viewBox="0 0 15 11" fill="none"><path d="M7.5 8.6a1.4 1.4 0 1 1 0 2.4 1.4 1.4 0 0 1 0-2.4zM4.6 7a4.4 4.4 0 0 1 5.8 0M2 4.4a8 8 0 0 1 11 0" stroke="#16161A" stroke-width="1.3" stroke-linecap="round"></path></svg>
+      <svg width="22" height="11" viewBox="0 0 22 11" fill="none"><rect x=".5" y=".5" width="18" height="10" rx="2.5" stroke="#16161A" opacity=".4"></rect><rect x="2" y="2" width="12" height="7" rx="1.2" fill="#16161A"></rect><path d="M20.5 3.5v4a2 2 0 0 0 0-4z" fill="#16161A" opacity=".4"></path></svg>
+    </span>
+  </div>
+  <!-- nav bar -->
+  <div style="height:50px;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid #E7E7E2;flex:none;background:#FBFBFA">
+    <div style="display:flex;align-items:center;gap:5px;color:#2547F4;font-size:15px;font-weight:500">
+      <svg width="12" height="16" viewBox="0 0 10 16" fill="none"><path d="M8 1.5L2 8l6 6.5" stroke="#2547F4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>Pads
+    </div>
+    <span style="flex:1"></span>
+    <span style="font-size:15px;font-weight:600;position:absolute;left:50%;transform:translateX(-50%)">Garden layout</span>
+    <div style="display:flex;align-items:center;gap:5px;border:1px solid #BBE3C6;background:#EBF7EE;border-radius:9px;padding:6px 11px"><span style="width:6px;height:6px;border-radius:50%;background:#1FA84D;display:block"></span><span style="font-size:12.5px;font-weight:600;color:#177A38">Mac is here</span></div>
+    <div style="width:44px;height:38px;border:1px solid #E7E7E2;border-radius:9px;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:15px;color:#44443E">T</div>
+    <div style="height:38px;border:1px solid #E7E7E2;border-radius:9px;background:#fff;display:flex;align-items:center;gap:7px;padding:0 12px"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="1.5" width="11" height="11" rx="2" stroke="#44443E" stroke-width="1.3"></rect><circle cx="4.6" cy="4.6" r=".9" fill="#44443E"></circle><circle cx="9.4" cy="4.6" r=".9" fill="#44443E"></circle><circle cx="4.6" cy="9.4" r=".9" fill="#44443E"></circle><circle cx="9.4" cy="9.4" r=".9" fill="#44443E"></circle></svg><span style="font-size:12.5px;font-weight:600;color:#44443E">Dots</span></div>
+  </div>
+  <!-- canvas -->
+  <div style="flex:1;background:radial-gradient(#DEDED6 1px,#fff 1px);background-size:14px 14px;position:relative;overflow:hidden">
+    <svg width="960" height="520" viewBox="0 0 960 520" fill="none" style="position:absolute;inset:0">
+      <path d="M170 380 C 230 190, 400 150, 500 230 S 700 380, 810 210" stroke="#16161A" stroke-width="2.4" stroke-linecap="round"></path>
+      <path d="M250 390 c 22-34 44-46 78-49" stroke="#2547F4" stroke-width="2.2" stroke-linecap="round"></path>
+      <circle cx="740" cy="150" r="30" stroke="#D63030" stroke-width="2.2"></circle>
+    </svg>
+    <div style="position:absolute;left:620px;top:280px;display:flex;align-items:center;gap:6px">
+      <svg width="15" height="15" viewBox="0 0 14 14" fill="none"><path d="M2 1.5l10 4.5-4.4 1.6L6 12z" fill="#2547F4"></path></svg>
+      <span style="background:#2547F4;color:#fff;font-size:11px;font-weight:600;border-radius:6px;padding:3px 9px">Miguel's Mac</span>
+    </div>
+    <!-- system PencilKit palette (placeholder) -->
+    <div style="position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;align-items:center;gap:14px;background:rgba(250,250,248,.92);border:1px solid #E0E0DA;border-radius:16px;padding:10px 18px;box-shadow:0 8px 28px rgba(0,0,0,.16)">
+      <div style="display:flex;gap:14px;align-items:center;color:#9C9C94">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M7 4L3 8l4 4M3 8h8a4 4 0 0 1 0 8h-2" stroke="#9C9C94" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style="transform:scaleX(-1)"><path d="M7 4L3 8l4 4M3 8h8a4 4 0 0 1 0 8h-2" stroke="#D6D6CE" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      </div>
+      <div style="width:1px;height:26px;background:#E0E0DA"></div>
+      <div style="display:flex;align-items:flex-end;gap:10px;height:34px">
+        <div style="width:16px;height:44px;border-radius:8px 8px 3px 3px;background:linear-gradient(#16161A 0 12px,#C8C8C0 12px);margin-bottom:-6px"></div>
+        <div style="width:16px;height:34px;border-radius:8px 8px 3px 3px;background:linear-gradient(#E8850C 0 12px,#D6D6CE 12px)"></div>
+        <div style="width:16px;height:34px;border-radius:8px 8px 3px 3px;background:linear-gradient(#8A8A82 0 12px,#D6D6CE 12px)"></div>
+        <div style="width:16px;height:34px;border-radius:3px;background:#D6D6CE"></div>
+      </div>
+      <div style="width:1px;height:26px;background:#E0E0DA"></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="width:18px;height:18px;border-radius:50%;background:#16161A;display:block;box-shadow:0 0 0 2px #fff,0 0 0 3.5px #2547F4"></span>
+        <span style="width:18px;height:18px;border-radius:50%;background:#2547F4;display:block"></span>
+        <span style="width:18px;height:18px;border-radius:50%;background:#D63030;display:block"></span>
+        <span style="width:18px;height:18px;border-radius:50%;background:#1FA84D;display:block"></span>
+        <span style="width:18px;height:18px;border-radius:50%;background:#E8850C;display:block"></span>
+      </div>
+      <div style="width:1px;height:26px;background:#E0E0DA"></div>
+      <svg width="17" height="17" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="3" r="1.4" fill="#9C9C94"></circle><circle cx="8" cy="8" r="1.4" fill="#9C9C94"></circle><circle cx="8" cy="13" r="1.4" fill="#9C9C94"></circle></svg>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ═══════ 2c · Mac states ═══════ -->
+<div class="dv-opt" id="2c" data-screen-label="2c Mac states">
+<div class="dv-olabel"><a class="dv-oid" href="#2c">2c</a>Mac — search results, empty state, offline-fork conflict</div>
+
+<div class="dv-card" style="width:520px" data-screen-label="2c search">
+<div style="width:520px;background:#FBFBFA;font-family:Archivo,sans-serif;color:#16161A;padding:16px 18px 18px;box-sizing:border-box">
+  <div style="display:flex;align-items:center;gap:8px;border:1.5px solid #2547F4;border-radius:8px;padding:8px 12px;background:#fff;box-shadow:0 0 0 3px #EDF0FE">
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="#44443E" stroke-width="1.5"></circle><path d="M8.5 8.5l3 3" stroke="#44443E" stroke-width="1.5" stroke-linecap="round"></path></svg>
+    <span style="font-size:13.5px">gar</span><span style="width:1.5px;height:15px;background:#2547F4;display:block"></span>
+    <span style="flex:1"></span>
+    <span style="width:16px;height:16px;border-radius:50%;background:#E7E7E2;display:flex;align-items:center;justify-content:center;font-size:10px;color:#6b6b64">×</span>
+  </div>
+  <div style="font-size:10.5px;font-weight:700;letter-spacing:.08em;color:#9C9C94;margin:16px 2px 8px">2 RESULTS</div>
+  <div style="display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:8px;background:#F1F1EC">
+    <div style="width:52px;height:38px;border-radius:5px;background:repeating-linear-gradient(#fff 0 8px,#EFEFEA 8px 9px);border:1px solid #E7E7E2;display:flex;align-items:center;justify-content:center"><svg width="42" height="30" viewBox="0 0 120 84" fill="none"><path d="M18 66c10-26 26-40 42-40s30 10 40 5" stroke="#16161A" stroke-width="4" stroke-linecap="round"></path></svg></div>
+    <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13.5px;font-weight:600"><mark style="background:#DCE4FD;color:#16161A;border-radius:2px;padding:0 1px">Gar</mark>den layout</span><span style="font-size:11.5px;color:#9C9C94">Title match · Home projects</span></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:8px">
+    <div style="width:52px;height:38px;border-radius:5px;border:1px solid #E7E7E2;display:flex;align-items:center;justify-content:center"><svg width="42" height="30" viewBox="0 0 120 84" fill="none"><path d="M20 44h24l6-14 8 28 6-14h36" stroke="#16161A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path></svg></div>
+    <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13.5px;font-weight:600">Circuit sketch</span><span style="font-size:11.5px;color:#9C9C94">Text match: "…check <mark style="background:#DCE4FD;color:#16161A;border-radius:2px;padding:0 1px">gar</mark>age fuse box…"</span></div>
+  </div>
+</div>
+</div>
+
+<div class="dv-card" style="width:520px" data-screen-label="2c empty">
+<div style="width:520px;height:280px;background:#FBFBFA;font-family:Archivo,sans-serif;color:#16161A;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px">
+  <svg width="72" height="50" viewBox="0 0 72 50" fill="none"><path d="M8 40 C 18 12, 34 8, 42 20 S 56 42, 66 16" stroke="#D6D6CE" stroke-width="2.5" stroke-linecap="round"></path></svg>
+  <div style="font-size:15px;font-weight:600">No pads yet</div>
+  <div style="font-size:13px;color:#9C9C94;margin-top:-6px">Everything you draw here syncs to your iPad when it's nearby.</div>
+  <div style="display:flex;align-items:center;gap:6px;background:#2547F4;color:#fff;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:600;margin-top:6px">＋ New pad</div>
+</div>
+</div>
+
+<div class="dv-card" style="width:520px" data-screen-label="2c conflict">
+<div style="width:520px;background:#FBFBFA;font-family:Archivo,sans-serif;color:#16161A;padding:16px 18px 18px;box-sizing:border-box">
+  <div style="font-size:10.5px;font-weight:700;letter-spacing:.08em;color:#9C9C94;margin:0 2px 10px">EDITED ON BOTH DEVICES WHILE APART</div>
+  <div style="border:1px solid #E7E7E2;border-radius:10px;background:#fff;overflow:hidden">
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid #E7E7E2">
+      <div style="width:52px;height:38px;border-radius:5px;background:repeating-linear-gradient(#fff 0 8px,#EFEFEA 8px 9px);border:1px solid #E7E7E2;display:flex;align-items:center;justify-content:center"><svg width="42" height="30" viewBox="0 0 120 84" fill="none"><path d="M18 66c10-26 26-40 42-40s30 10 40 5" stroke="#16161A" stroke-width="4" stroke-linecap="round"></path></svg></div>
+      <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13.5px;font-weight:600">Garden layout</span><span style="font-size:11.5px;color:#9C9C94">Yesterday · this Mac</span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:#FFF9EE">
+      <div style="width:52px;height:38px;border-radius:5px;background:repeating-linear-gradient(#fff 0 8px,#EFEFEA 8px 9px);border:1px solid #EDD9AE;display:flex;align-items:center;justify-content:center"><svg width="42" height="30" viewBox="0 0 120 84" fill="none"><path d="M18 66c10-26 26-40 42-40s30 10 40 5M60 60c8-4 16-4 24 0" stroke="#16161A" stroke-width="4" stroke-linecap="round"></path></svg></div>
+      <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13.5px;font-weight:600">Garden layout (conflict)</span><span style="font-size:11.5px;color:#B07818">Forked from your iPad's edits · keep, merge by hand, or delete</span></div>
+      <span style="flex:1"></span>
+      <span style="font-size:10.5px;font-weight:700;letter-spacing:.05em;color:#B07818;border:1px solid #EDD9AE;background:#fff;border-radius:999px;padding:3px 8px">FORK</span>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Try next: "make <a class="dv-oid" href="#2a">2a</a>/<a class="dv-oid" href="#2b">2b</a> an interactive prototype" · "show text mode on the Mac canvas" · "tweak the accent blue"</p>
+</section>
+
+<section class="dv-turn" id="t1" data-screen-label="Turn 1 — three directions">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Quill on Mac — three directions (pad list + drawing screen). Same features as today: sections, search, peer sync, paper styles, tool strip, zoom.</span></div>
+<div class="dv-opts">
+
+<!-- ═══════════════════════ 1a · PAPER & INK ═══════════════════════ -->
+<div class="dv-opt" id="1a" data-screen-label="1a Paper and Ink">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Paper &amp; Ink — warm stationery, serif titles, folder cards</div>
+
+<div class="dv-card" style="width:860px" data-screen-label="1a home">
+<div style="width:860px;background:#F7F2E6;font-family:Karla,sans-serif;color:#211D16">
+  <!-- titlebar -->
+  <div style="display:flex;align-items:center;gap:14px;padding:14px 18px 12px;border-bottom:1px solid #E6DCC6">
+    <div style="display:flex;gap:8px"><span style="width:12px;height:12px;border-radius:50%;background:#FF5F57;display:block"></span><span style="width:12px;height:12px;border-radius:50%;background:#FEBC2E;display:block"></span><span style="width:12px;height:12px;border-radius:50%;background:#28C840;display:block"></span></div>
+    <div style="font-family:'Instrument Serif',serif;font-style:italic;font-size:23px;line-height:1;margin-left:4px">Quill</div>
+    <div style="flex:1;display:flex;justify-content:center">
+      <div style="display:flex;align-items:center;gap:8px;background:#FFFDF6;border:1px solid #E6DCC6;border-radius:999px;padding:7px 14px;width:300px">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="#9A8F78" stroke-width="1.5"></circle><path d="M8.5 8.5l3 3" stroke="#9A8F78" stroke-width="1.5" stroke-linecap="round"></path></svg>
+        <span style="font-size:13px;color:#9A8F78">Search pads and text</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:7px;background:#EDF3E7;border:1px solid #CBDDBC;border-radius:999px;padding:6px 12px">
+      <span style="width:7px;height:7px;border-radius:50%;background:#4C9A3F;display:block"></span>
+      <span style="font-size:12px;font-weight:600;color:#3E6B34">iPad nearby</span>
+    </div>
+    <div style="width:34px;height:34px;border:1px solid #E6DCC6;border-radius:9px;background:#FFFDF6;display:flex;align-items:center;justify-content:center" style-hover="background:#F2EBD9">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M1.5 4.5a2 2 0 0 1 2-2h2.6l1.4 1.6h5a2 2 0 0 1 2 2v5.4a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2z" stroke="#6E634C" stroke-width="1.4"></path><path d="M8 7.4v3.4M6.3 9.1h3.4" stroke="#6E634C" stroke-width="1.4" stroke-linecap="round"></path></svg>
+    </div>
+    <div style="height:34px;display:flex;align-items:center;gap:7px;background:#A3502B;border-radius:9px;padding:0 14px;color:#FBF6EA" style-hover="background:#8F441F">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9.7 1.8l2.5 2.5L5 11.5l-3.2.7.7-3.2z" stroke="#FBF6EA" stroke-width="1.4" stroke-linejoin="round"></path></svg>
+      <span style="font-size:13px;font-weight:700">New pad</span>
+    </div>
+  </div>
+  <!-- folder cards -->
+  <div style="padding:22px 26px 26px;display:flex;flex-direction:column;gap:14px">
+    <!-- Home projects (expanded) -->
+    <div style="background:#FFFDF6;border:1px solid #E6DCC6;border-radius:12px;box-shadow:0 1px 2px rgba(90,70,30,.06)">
+      <div style="display:flex;align-items:center;gap:10px;padding:13px 16px">
+        <svg width="17" height="17" viewBox="0 0 16 16" fill="none"><path d="M1.5 4.5a2 2 0 0 1 2-2h2.6l1.4 1.6h5a2 2 0 0 1 2 2v5.4a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2z" fill="#EAD9B8" stroke="#A3502B" stroke-width="1.3"></path></svg>
+        <span style="font-family:'Instrument Serif',serif;font-size:18px">Home projects</span>
+        <span style="font-size:12px;color:#9A8F78">3 pads</span>
+        <span style="flex:1"></span>
+        <svg width="11" height="11" viewBox="0 0 10 10" fill="none" style="transform:rotate(90deg)"><path d="M3 1.5L7 5l-4 3.5" stroke="#9A8F78" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      </div>
+      <div style="border-top:1px solid #F0E8D4">
+        <div style="display:flex;align-items:center;gap:14px;padding:10px 16px;border-bottom:1px solid #F0E8D4" style-hover="background:#FAF5E6">
+          <div style="width:58px;height:42px;border-radius:6px;background:repeating-linear-gradient(#FFFDF6 0 9px,#EFE6CF 9px 10px);border:1px solid #E6DCC6;display:flex;align-items:center;justify-content:center;overflow:hidden"><svg width="48" height="34" viewBox="0 0 48 34" fill="none"><path d="M6 26l10-14 8 9 6-6 12 11" stroke="#211D16" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="36" cy="8" r="3.5" stroke="#A3502B" stroke-width="1.4"></circle></svg></div>
+          <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">Kitchen reno ideas</span><span style="font-size:12px;color:#9A8F78">Edited 2 hours ago</span></div>
+          <span style="flex:1"></span>
+          <div style="display:flex;align-items:center;gap:6px;background:#EDF3E7;border-radius:999px;padding:4px 10px"><svg width="14" height="10" viewBox="0 0 14 10" fill="none"><path d="M1 5s2.2-4 6-4 6 4 6 4-2.2 4-6 4-6-4-6-4z" stroke="#4C9A3F" stroke-width="1.3"></path><circle cx="7" cy="5" r="1.7" fill="#4C9A3F"></circle></svg><span style="font-size:11px;font-weight:700;color:#3E6B34">iPad is here</span></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;padding:10px 16px;border-bottom:1px solid #F0E8D4" style-hover="background:#FAF5E6">
+          <div style="width:58px;height:42px;border-radius:6px;background:radial-gradient(#D8CDB2 1px,#FFFDF6 1px);background-size:8px 8px;border:1px solid #E6DCC6;display:flex;align-items:center;justify-content:center;overflow:hidden"><svg width="48" height="34" viewBox="0 0 48 34" fill="none"><path d="M8 28c4-10 10-16 16-16s12 4 16 2" stroke="#2B5E3C" stroke-width="1.6" stroke-linecap="round"></path><path d="M14 28c2-4 4-6 8-7M30 15c-2 4-2 8 0 12" stroke="#211D16" stroke-width="1.3" stroke-linecap="round"></path></svg></div>
+          <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">Garden layout</span><span style="font-size:12px;color:#9A8F78">Edited yesterday</span></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;padding:10px 16px" style-hover="background:#FAF5E6">
+          <div style="width:58px;height:42px;border-radius:6px;background:#FFFDF6;border:1px solid #E6DCC6;display:flex;align-items:center;justify-content:center;overflow:hidden"><svg width="48" height="34" viewBox="0 0 48 34" fill="none"><rect x="10" y="8" width="18" height="14" rx="1.5" stroke="#211D16" stroke-width="1.4"></rect><path d="M28 12h8m-8 6h8M14 22v6m8-6v6" stroke="#211D16" stroke-width="1.4" stroke-linecap="round"></path></svg></div>
+          <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">Workbench plan</span><span style="font-size:12px;color:#9A8F78">Edited 3 days ago</span></div>
+        </div>
+      </div>
+    </div>
+    <!-- Maths (collapsed) -->
+    <div style="background:#FFFDF6;border:1px solid #E6DCC6;border-radius:12px;box-shadow:0 1px 2px rgba(90,70,30,.06)">
+      <div style="display:flex;align-items:center;gap:10px;padding:13px 16px">
+        <svg width="17" height="17" viewBox="0 0 16 16" fill="none"><path d="M1.5 4.5a2 2 0 0 1 2-2h2.6l1.4 1.6h5a2 2 0 0 1 2 2v5.4a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2z" fill="#EAD9B8" stroke="#A3502B" stroke-width="1.3"></path></svg>
+        <span style="font-family:'Instrument Serif',serif;font-size:18px">Maths scratch</span>
+        <span style="font-size:12px;color:#9A8F78">4 pads</span>
+        <span style="flex:1"></span>
+        <svg width="11" height="11" viewBox="0 0 10 10" fill="none"><path d="M3 1.5L7 5l-4 3.5" stroke="#9A8F78" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      </div>
+    </div>
+    <!-- Unsorted -->
+    <div style="background:#FFFDF6;border:1px dashed #D8CDB2;border-radius:12px">
+      <div style="display:flex;align-items:center;gap:10px;padding:13px 16px">
+        <svg width="17" height="17" viewBox="0 0 16 16" fill="none"><path d="M2 9h3.2l1 2h3.6l1-2H14M2 9l1.6-5.4A1.5 1.5 0 0 1 5 2.5h6a1.5 1.5 0 0 1 1.4 1.1L14 9m-12 0v3a1.5 1.5 0 0 0 1.5 1.5h9A1.5 1.5 0 0 0 14 12V9" stroke="#9A8F78" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        <span style="font-family:'Instrument Serif',serif;font-size:18px;color:#6E634C">Unsorted</span>
+        <span style="font-size:12px;color:#9A8F78">2 pads</span>
+        <span style="flex:1"></span>
+        <svg width="11" height="11" viewBox="0 0 10 10" fill="none"><path d="M3 1.5L7 5l-4 3.5" stroke="#9A8F78" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-card" style="width:860px" data-screen-label="1a canvas">
+<div style="width:860px;background:#F7F2E6;font-family:Karla,sans-serif;color:#211D16">
+  <!-- top bar -->
+  <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #E6DCC6">
+    <svg width="15" height="15" viewBox="0 0 10 10" fill="none" style="transform:rotate(180deg)"><path d="M3 1.5L7 5l-4 3.5" stroke="#211D16" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    <span style="font-family:'Instrument Serif',serif;font-size:19px;white-space:nowrap">Garden layout</span>
+    <div style="width:1px;height:22px;background:#E6DCC6"></div>
+    <!-- tools -->
+    <div style="display:flex;gap:2px;background:#FFFDF6;border:1px solid #E6DCC6;border-radius:9px;padding:3px">
+      <div style="width:34px;height:30px;border-radius:7px;background:#211D16;display:flex;align-items:center;justify-content:center"><svg width="15" height="15" viewBox="0 0 14 14" fill="none"><path d="M9.7 1.8l2.5 2.5L5 11.5l-3.2.7.7-3.2z" stroke="#F7F2E6" stroke-width="1.4" stroke-linejoin="round"></path></svg></div>
+      <div style="width:34px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center"><svg width="15" height="15" viewBox="0 0 14 14" fill="none"><path d="M8.5 1.5h3v3L6 10H3V7z" stroke="#6E634C" stroke-width="1.4" stroke-linejoin="round"></path><path d="M3 12.5h8" stroke="#6E634C" stroke-width="1.8" stroke-linecap="round"></path></svg></div>
+      <div style="width:34px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center"><svg width="15" height="15" viewBox="0 0 14 14" fill="none"><path d="M9.7 1.8l2.5 2.5L5 11.5l-3.2.7.7-3.2z" stroke="#6E634C" stroke-width="1.4" stroke-linejoin="round" stroke-dasharray="2 2"></path></svg></div>
+      <div style="width:34px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center"><svg width="15" height="15" viewBox="0 0 14 14" fill="none"><path d="M5 12L1.8 8.8a1.5 1.5 0 0 1 0-2.1L7 1.5a1.5 1.5 0 0 1 2.1 0l3.2 3.2a1.5 1.5 0 0 1 0 2.1L8 11.2M5 12h7.5M5 12H8" stroke="#6E634C" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"></path></svg></div>
+    </div>
+    <!-- colors -->
+    <div style="display:flex;gap:8px;align-items:center;padding:0 4px">
+      <span style="width:19px;height:19px;border-radius:50%;background:#211D16;display:block;box-shadow:0 0 0 2px #F7F2E6,0 0 0 3.5px #A3502B"></span>
+      <span style="width:19px;height:19px;border-radius:50%;background:#2B4A8A;display:block"></span>
+      <span style="width:19px;height:19px;border-radius:50%;background:#A82E2E;display:block"></span>
+      <span style="width:19px;height:19px;border-radius:50%;background:#2B5E3C;display:block"></span>
+      <span style="width:19px;height:19px;border-radius:50%;background:#C07222;display:block"></span>
+      <span style="width:19px;height:19px;border-radius:50%;background:#6C3F8F;display:block"></span>
+    </div>
+    <!-- width -->
+    <div style="display:flex;align-items:center;gap:8px;width:120px"><div style="flex:1;height:4px;border-radius:2px;background:#E6DCC6;position:relative"><div style="position:absolute;left:0;top:0;bottom:0;width:35%;background:#A3502B;border-radius:2px"></div><div style="position:absolute;left:35%;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%;background:#FFFDF6;border:1.5px solid #A3502B"></div></div></div>
+    <span style="flex:1"></span>
+    <!-- zoom -->
+    <div style="display:flex;align-items:center;background:#FFFDF6;border:1px solid #E6DCC6;border-radius:9px">
+      <span style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#6E634C">−</span>
+      <span style="min-width:46px;text-align:center;font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums">125%</span>
+      <span style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#6E634C">+</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;background:#EDF3E7;border-radius:999px;padding:5px 11px"><span style="width:7px;height:7px;border-radius:50%;background:#4C9A3F;display:block"></span><span style="font-size:11.5px;font-weight:700;color:#3E6B34">iPad</span></div>
+    <div style="width:32px;height:30px;border:1px solid #E6DCC6;border-radius:8px;background:#FFFDF6;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;color:#6E634C">T</div>
+    <div style="width:32px;height:30px;border:1px solid #E6DCC6;border-radius:8px;background:#FFFDF6;display:flex;align-items:center;justify-content:center"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="1.5" width="11" height="11" rx="2" stroke="#6E634C" stroke-width="1.3"></rect><path d="M4 5h6M4 7.5h6M4 10h4" stroke="#6E634C" stroke-width="1.1" stroke-linecap="round"></path></svg></div>
+  </div>
+  <!-- canvas -->
+  <div style="height:330px;background:repeating-linear-gradient(#FFFDF6 0 27px,#EFE6CF 27px 28px);position:relative;overflow:hidden">
+    <svg width="860" height="330" viewBox="0 0 860 330" fill="none" style="position:absolute;inset:0">
+      <path d="M120 240 C 160 120, 300 100, 380 160 S 560 260, 660 150" stroke="#2B5E3C" stroke-width="2.5" stroke-linecap="round"></path>
+      <path d="M180 250 c 20-30 40-40 70-42 m 120 8 c -14 30 -12 56 6 84" stroke="#211D16" stroke-width="2" stroke-linecap="round"></path>
+      <circle cx="620" cy="110" r="26" stroke="#A82E2E" stroke-width="2"></circle>
+    </svg>
+    <div style="position:absolute;left:508px;top:196px;display:flex;align-items:center;gap:6px">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 1.5l10 4.5-4.4 1.6L6 12z" fill="#A3502B"></path></svg>
+      <span style="background:#A3502B;color:#FBF6EA;font-size:10.5px;font-weight:700;border-radius:999px;padding:3px 8px">Miguel's iPad</span>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ═══════════════════════ 1b · STUDIO ═══════════════════════ -->
+<div class="dv-opt" id="1b" data-screen-label="1b Studio">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Studio — sidebar + thumbnail grid, one blue accent, hairlines</div>
+
+<div class="dv-card" style="width:860px" data-screen-label="1b home">
+<div style="width:860px;background:#FBFBFA;font-family:Archivo,sans-serif;color:#16161A;display:flex">
+  <!-- sidebar -->
+  <div style="width:208px;border-right:1px solid #E7E7E2;display:flex;flex-direction:column;padding:14px 12px 16px;box-sizing:border-box">
+    <div style="display:flex;gap:8px;margin:2px 4px 18px"><span style="width:12px;height:12px;border-radius:50%;background:#FF5F57;display:block"></span><span style="width:12px;height:12px;border-radius:50%;background:#FEBC2E;display:block"></span><span style="width:12px;height:12px;border-radius:50%;background:#28C840;display:block"></span></div>
+    <div style="display:flex;align-items:center;gap:7px;border:1px solid #E7E7E2;border-radius:8px;padding:7px 10px;margin-bottom:16px;background:#fff">
+      <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="#9C9C94" stroke-width="1.5"></circle><path d="M8.5 8.5l3 3" stroke="#9C9C94" stroke-width="1.5" stroke-linecap="round"></path></svg>
+      <span style="font-size:12.5px;color:#9C9C94">Search</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;background:#EDF0FE;color:#2547F4;font-weight:600;font-size:13px">All pads<span style="flex:1"></span><span style="font-size:11px;font-weight:500">9</span></div>
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;font-size:13px;color:#44443E" style-hover="background:#F1F1EC">Unsorted<span style="flex:1"></span><span style="font-size:11px;color:#9C9C94">2</span></div>
+    <div style="font-size:10.5px;font-weight:700;letter-spacing:.08em;color:#9C9C94;margin:14px 10px 6px">FOLDERS</div>
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;font-size:13px;color:#44443E" style-hover="background:#F1F1EC">Home projects<span style="flex:1"></span><span style="font-size:11px;color:#9C9C94">3</span></div>
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;font-size:13px;color:#44443E" style-hover="background:#F1F1EC">Maths scratch<span style="flex:1"></span><span style="font-size:11px;color:#9C9C94">4</span></div>
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;font-size:12.5px;color:#9C9C94">+ New folder</div>
+    <span style="flex:1"></span>
+    <div style="display:flex;align-items:center;gap:7px;border-top:1px solid #E7E7E2;padding:12px 6px 0"><span style="width:7px;height:7px;border-radius:50%;background:#1FA84D;display:block"></span><span style="font-size:12px;color:#44443E">Miguel's iPad · connected</span></div>
+  </div>
+  <!-- main -->
+  <div style="flex:1;padding:16px 22px 22px;box-sizing:border-box">
+    <div style="display:flex;align-items:center;margin-bottom:16px">
+      <div style="font-weight:600;font-size:15px">All pads</div>
+      <span style="flex:1"></span>
+      <div style="display:flex;align-items:center;gap:6px;background:#2547F4;color:#fff;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600" style-hover="background:#1D39C9">＋ New pad</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+      <!-- card -->
+      <div style="border:1px solid #E7E7E2;border-radius:10px;background:#fff;overflow:hidden" style-hover="border-color:#2547F4">
+        <div style="height:110px;background:radial-gradient(#DEDED6 1px,#fff 1px);background-size:9px 9px;position:relative;display:flex;align-items:center;justify-content:center">
+          <svg width="120" height="84" viewBox="0 0 120 84" fill="none"><path d="M14 64l26-36 20 24 14-16 30 28" stroke="#16161A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="90" cy="20" r="8" stroke="#2547F4" stroke-width="1.6"></circle></svg>
+          <div style="position:absolute;top:8px;right:8px;display:flex;align-items:center;gap:5px;background:#16161A;color:#fff;border-radius:999px;padding:3px 8px"><svg width="12" height="9" viewBox="0 0 14 10" fill="none"><path d="M1 5s2.2-4 6-4 6 4 6 4-2.2 4-6 4-6-4-6-4z" stroke="#fff" stroke-width="1.3"></path><circle cx="7" cy="5" r="1.7" fill="#fff"></circle></svg><span style="font-size:10px;font-weight:600">iPad</span></div>
+        </div>
+        <div style="padding:10px 12px;border-top:1px solid #E7E7E2"><div style="font-size:13.5px;font-weight:600">Kitchen reno ideas</div><div style="font-size:11.5px;color:#9C9C94;margin-top:2px">2h ago · Home projects</div></div>
+      </div>
+      <div style="border:1px solid #E7E7E2;border-radius:10px;background:#fff;overflow:hidden" style-hover="border-color:#2547F4">
+        <div style="height:110px;background:repeating-linear-gradient(#fff 0 12px,#EFEFEA 12px 13px);display:flex;align-items:center;justify-content:center">
+          <svg width="120" height="84" viewBox="0 0 120 84" fill="none"><path d="M18 66c10-26 26-40 42-40s30 10 40 5" stroke="#16161A" stroke-width="1.8" stroke-linecap="round"></path><path d="M34 66c5-10 10-15 20-17" stroke="#2547F4" stroke-width="1.5" stroke-linecap="round"></path></svg>
+        </div>
+        <div style="padding:10px 12px;border-top:1px solid #E7E7E2"><div style="font-size:13.5px;font-weight:600">Garden layout</div><div style="font-size:11.5px;color:#9C9C94;margin-top:2px">Yesterday · Home projects</div></div>
+      </div>
+      <div style="border:1px solid #E7E7E2;border-radius:10px;background:#fff;overflow:hidden" style-hover="border-color:#2547F4">
+        <div style="height:110px;display:flex;align-items:center;justify-content:center">
+          <svg width="120" height="84" viewBox="0 0 120 84" fill="none"><rect x="30" y="18" width="38" height="30" rx="2" stroke="#16161A" stroke-width="1.7"></rect><path d="M68 26h20m-20 12h20M38 48v16m22-16v16" stroke="#16161A" stroke-width="1.7" stroke-linecap="round"></path></svg>
+        </div>
+        <div style="padding:10px 12px;border-top:1px solid #E7E7E2"><div style="font-size:13.5px;font-weight:600">Workbench plan</div><div style="font-size:11.5px;color:#9C9C94;margin-top:2px">3d ago · Home projects</div></div>
+      </div>
+      <div style="border:1px solid #E7E7E2;border-radius:10px;background:#fff;overflow:hidden" style-hover="border-color:#2547F4">
+        <div style="height:110px;background:linear-gradient(#EFEFEA 1px,transparent 1px),linear-gradient(90deg,#EFEFEA 1px,transparent 1px);background-size:12px 12px;display:flex;align-items:center;justify-content:center">
+          <svg width="120" height="84" viewBox="0 0 120 84" fill="none"><path d="M20 60l18-18m0 18L20 42M52 52h20M52 60h20" stroke="#16161A" stroke-width="1.7" stroke-linecap="round"></path><path d="M84 64c0-14 8-26 16-30" stroke="#2547F4" stroke-width="1.5" stroke-linecap="round"></path><path d="M28 22c6-6 14-6 18 0" stroke="#16161A" stroke-width="1.5" stroke-linecap="round"></path></svg>
+        </div>
+        <div style="padding:10px 12px;border-top:1px solid #E7E7E2"><div style="font-size:13.5px;font-weight:600">Integrals week 4</div><div style="font-size:11.5px;color:#9C9C94;margin-top:2px">4d ago · Maths scratch</div></div>
+      </div>
+      <div style="border:1px solid #E7E7E2;border-radius:10px;background:#fff;overflow:hidden" style-hover="border-color:#2547F4">
+        <div style="height:110px;display:flex;align-items:center;justify-content:center">
+          <svg width="120" height="84" viewBox="0 0 120 84" fill="none"><path d="M20 44h24l6-14 8 28 6-14h36" stroke="#16161A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        </div>
+        <div style="padding:10px 12px;border-top:1px solid #E7E7E2"><div style="font-size:13.5px;font-weight:600">Circuit sketch</div><div style="font-size:11.5px;color:#9C9C94;margin-top:2px">1w ago · Unsorted</div></div>
+      </div>
+      <div style="border:1px dashed #D6D6CE;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:160px;color:#9C9C94" style-hover="border-color:#2547F4;color:#2547F4">
+        <span style="font-size:22px;line-height:1">＋</span><span style="font-size:12.5px;font-weight:600">New pad</span>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-card" style="width:860px" data-screen-label="1b canvas">
+<div style="width:860px;background:#FBFBFA;font-family:Archivo,sans-serif;color:#16161A">
+  <div style="display:flex;align-items:center;gap:12px;padding:9px 14px;border-bottom:1px solid #E7E7E2">
+    <svg width="14" height="14" viewBox="0 0 10 10" fill="none" style="transform:rotate(180deg)"><path d="M3 1.5L7 5l-4 3.5" stroke="#16161A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    <span style="font-size:13.5px;font-weight:600;white-space:nowrap">Garden layout</span>
+    <span style="font-size:11.5px;color:#9C9C94;white-space:nowrap">Home projects</span>
+    <div style="width:1px;height:20px;background:#E7E7E2"></div>
+    <div style="display:flex;background:#F1F1EC;border-radius:8px;padding:2px">
+      <div style="padding:5px 12px;border-radius:6px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.08);font-size:12px;font-weight:600">Pen</div>
+      <div style="padding:5px 12px;border-radius:6px;font-size:12px;color:#6b6b64">Marker</div>
+      <div style="padding:5px 12px;border-radius:6px;font-size:12px;color:#6b6b64">Pencil</div>
+      <div style="padding:5px 12px;border-radius:6px;font-size:12px;color:#6b6b64">Eraser</div>
+    </div>
+    <div style="display:flex;gap:7px;align-items:center;padding:0 4px">
+      <span style="width:17px;height:17px;border-radius:5px;background:#16161A;display:block;box-shadow:0 0 0 2px #fff,0 0 0 3.5px #2547F4"></span>
+      <span style="width:17px;height:17px;border-radius:5px;background:#2547F4;display:block"></span>
+      <span style="width:17px;height:17px;border-radius:5px;background:#D63030;display:block"></span>
+      <span style="width:17px;height:17px;border-radius:5px;background:#1FA84D;display:block"></span>
+      <span style="width:17px;height:17px;border-radius:5px;background:#E8850C;display:block"></span>
+      <span style="width:17px;height:17px;border-radius:5px;background:#8B3FD1;display:block"></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;width:110px"><div style="flex:1;height:3px;border-radius:2px;background:#E7E7E2;position:relative"><div style="position:absolute;left:0;top:0;bottom:0;width:30%;background:#16161A;border-radius:2px"></div><div style="position:absolute;left:30%;top:50%;transform:translate(-50%,-50%);width:12px;height:12px;border-radius:50%;background:#16161A"></div></div></div>
+    <span style="flex:1"></span>
+    <div style="display:flex;align-items:center;border:1px solid #E7E7E2;border-radius:8px;background:#fff">
+      <span style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:#6b6b64">−</span>
+      <span style="min-width:44px;text-align:center;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums">125%</span>
+      <span style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:#6b6b64">+</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:5px;border:1px solid #BBE3C6;background:#EBF7EE;border-radius:8px;padding:5px 10px"><span style="width:6px;height:6px;border-radius:50%;background:#1FA84D;display:block"></span><span style="font-size:11.5px;font-weight:600;color:#177A38">iPad</span></div>
+    <div style="width:30px;height:28px;border:1px solid #E7E7E2;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13.5px;color:#44443E">T</div>
+    <div style="height:28px;border:1px solid #E7E7E2;border-radius:8px;background:#fff;display:flex;align-items:center;gap:6px;padding:0 10px"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="1.5" width="11" height="11" rx="2" stroke="#44443E" stroke-width="1.3"></rect><circle cx="4.6" cy="4.6" r=".9" fill="#44443E"></circle><circle cx="9.4" cy="4.6" r=".9" fill="#44443E"></circle><circle cx="4.6" cy="9.4" r=".9" fill="#44443E"></circle><circle cx="9.4" cy="9.4" r=".9" fill="#44443E"></circle></svg><span style="font-size:11.5px;font-weight:600;color:#44443E">Dots</span></div>
+  </div>
+  <div style="height:330px;background:radial-gradient(#DEDED6 1px,#fff 1px);background-size:14px 14px;position:relative;overflow:hidden">
+    <svg width="860" height="330" viewBox="0 0 860 330" fill="none" style="position:absolute;inset:0">
+      <path d="M140 250 C 190 120, 330 90, 420 150 S 600 250, 700 140" stroke="#16161A" stroke-width="2.2" stroke-linecap="round"></path>
+      <path d="M210 255 c 18-28 36-38 64-40" stroke="#2547F4" stroke-width="2" stroke-linecap="round"></path>
+      <circle cx="640" cy="100" r="24" stroke="#D63030" stroke-width="2"></circle>
+    </svg>
+    <div style="position:absolute;left:540px;top:186px;display:flex;align-items:center;gap:6px">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 1.5l10 4.5-4.4 1.6L6 12z" fill="#2547F4"></path></svg>
+      <span style="background:#2547F4;color:#fff;font-size:10.5px;font-weight:600;border-radius:6px;padding:3px 8px">Miguel's iPad</span>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ═══════════════════════ 1c · ATELIER ═══════════════════════ -->
+<div class="dv-opt" id="1c" data-screen-label="1c Atelier">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Atelier — dark room around light paper, amber accent, mono labels</div>
+
+<div class="dv-card" style="width:860px" data-screen-label="1c home">
+<div style="width:860px;background:#1A1A1E;font-family:Sora,sans-serif;color:#EDEBE4">
+  <div style="display:flex;align-items:center;gap:14px;padding:14px 18px">
+    <div style="display:flex;gap:8px"><span style="width:12px;height:12px;border-radius:50%;background:#3A3A40;display:block"></span><span style="width:12px;height:12px;border-radius:50%;background:#3A3A40;display:block"></span><span style="width:12px;height:12px;border-radius:50%;background:#3A3A40;display:block"></span></div>
+    <div style="font-family:'Spline Sans Mono',monospace;font-weight:600;font-size:15px;letter-spacing:.22em;margin-left:4px">QUILL</div>
+    <div style="flex:1;display:flex;justify-content:center">
+      <div style="display:flex;align-items:center;gap:8px;background:#232328;border:1px solid #313138;border-radius:8px;padding:7px 14px;width:280px">
+        <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="#7A7A72" stroke-width="1.5"></circle><path d="M8.5 8.5l3 3" stroke="#7A7A72" stroke-width="1.5" stroke-linecap="round"></path></svg>
+        <span style="font-size:12.5px;color:#7A7A72">Search</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:7px;font-family:'Spline Sans Mono',monospace;font-size:11px;color:#8FCF9C"><span style="width:7px;height:7px;border-radius:50%;background:#4CC268;display:block;box-shadow:0 0 8px #4CC268"></span>IPAD LINKED</div>
+    <div style="width:34px;height:32px;border:1px solid #313138;border-radius:8px;display:flex;align-items:center;justify-content:center"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M1.5 4.5a2 2 0 0 1 2-2h2.6l1.4 1.6h5a2 2 0 0 1 2 2v5.4a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2z" stroke="#B9B7AE" stroke-width="1.3"></path></svg></div>
+    <div style="height:32px;display:flex;align-items:center;gap:7px;background:#E8A33D;border-radius:8px;padding:0 13px;color:#1A1A1E">
+      <span style="font-size:15px;line-height:1;font-weight:600">＋</span><span style="font-size:12.5px;font-weight:600">New pad</span>
+    </div>
+  </div>
+  <div style="padding:8px 22px 24px">
+    <div style="font-family:'Spline Sans Mono',monospace;font-size:11px;letter-spacing:.18em;color:#E8A33D;margin:10px 2px 10px">HOME PROJECTS — 3</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="height:120px;border-radius:8px;background:repeating-linear-gradient(#F4F1E7 0 11px,#E4DEC9 11px 12px);box-shadow:0 6px 20px rgba(0,0,0,.45);position:relative;display:flex;align-items:center;justify-content:center">
+          <svg width="130" height="92" viewBox="0 0 130 92" fill="none"><path d="M16 70l28-40 22 26 15-17 33 30" stroke="#26231C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="98" cy="22" r="9" stroke="#A3502B" stroke-width="1.6"></circle></svg>
+          <div style="position:absolute;top:7px;right:7px;display:flex;align-items:center;gap:4px;background:#1A1A1E;color:#E8A33D;border-radius:4px;padding:3px 7px;font-family:'Spline Sans Mono',monospace;font-size:9.5px;letter-spacing:.08em">IPAD●</div>
+        </div>
+        <div><div style="font-size:12.5px;font-weight:600">Kitchen reno ideas</div><div style="font-family:'Spline Sans Mono',monospace;font-size:10px;color:#7A7A72;margin-top:3px">2H AGO</div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="height:120px;border-radius:8px;background:radial-gradient(#D9D3BE 1px,#F4F1E7 1px);background-size:9px 9px;box-shadow:0 6px 20px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center">
+          <svg width="130" height="92" viewBox="0 0 130 92" fill="none"><path d="M20 72c11-28 28-44 46-44s33 11 44 6" stroke="#26231C" stroke-width="1.8" stroke-linecap="round"></path><path d="M38 72c5-11 11-17 22-19" stroke="#2B5E3C" stroke-width="1.6" stroke-linecap="round"></path></svg>
+        </div>
+        <div><div style="font-size:12.5px;font-weight:600">Garden layout</div><div style="font-family:'Spline Sans Mono',monospace;font-size:10px;color:#7A7A72;margin-top:3px">YESTERDAY</div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="height:120px;border-radius:8px;background:#F4F1E7;box-shadow:0 6px 20px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center">
+          <svg width="130" height="92" viewBox="0 0 130 92" fill="none"><rect x="34" y="20" width="40" height="32" rx="2" stroke="#26231C" stroke-width="1.7"></rect><path d="M74 28h22m-22 14h22M42 52v18m24-18v18" stroke="#26231C" stroke-width="1.7" stroke-linecap="round"></path></svg>
+        </div>
+        <div><div style="font-size:12.5px;font-weight:600">Workbench plan</div><div style="font-family:'Spline Sans Mono',monospace;font-size:10px;color:#7A7A72;margin-top:3px">3D AGO</div></div>
+      </div>
+      <div style="border:1px dashed #3A3A40;border-radius:8px;min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#7A7A72">
+        <span style="font-size:20px;line-height:1">＋</span><span style="font-family:'Spline Sans Mono',monospace;font-size:10px;letter-spacing:.12em">NEW HERE</span>
+      </div>
+    </div>
+    <div style="font-family:'Spline Sans Mono',monospace;font-size:11px;letter-spacing:.18em;color:#E8A33D;margin:20px 2px 10px">UNSORTED — 2</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="height:120px;border-radius:8px;background:#F4F1E7;box-shadow:0 6px 20px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center">
+          <svg width="130" height="92" viewBox="0 0 130 92" fill="none"><path d="M22 48h26l7-15 9 30 7-15h37" stroke="#26231C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        </div>
+        <div><div style="font-size:12.5px;font-weight:600">Circuit sketch</div><div style="font-family:'Spline Sans Mono',monospace;font-size:10px;color:#7A7A72;margin-top:3px">1W AGO</div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="height:120px;border-radius:8px;background:linear-gradient(#E4DEC9 1px,transparent 1px),linear-gradient(90deg,#E4DEC9 1px,transparent 1px),#F4F1E7;background-size:12px 12px;box-shadow:0 6px 20px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center">
+          <svg width="130" height="92" viewBox="0 0 130 92" fill="none"><path d="M24 64l20-20m0 20L24 44M58 56h22M58 64h22" stroke="#26231C" stroke-width="1.7" stroke-linecap="round"></path><path d="M92 70c0-16 9-29 18-34" stroke="#A3502B" stroke-width="1.6" stroke-linecap="round"></path></svg>
+        </div>
+        <div><div style="font-size:12.5px;font-weight:600">Untitled</div><div style="font-family:'Spline Sans Mono',monospace;font-size:10px;color:#7A7A72;margin-top:3px">2W AGO</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-card" style="width:860px" data-screen-label="1c canvas">
+<div style="width:860px;background:#1F1F23;font-family:Sora,sans-serif;color:#EDEBE4;position:relative;height:430px;overflow:hidden">
+  <!-- top-left back + title -->
+  <div style="position:absolute;top:14px;left:16px;display:flex;align-items:center;gap:10px;z-index:2">
+    <div style="width:30px;height:30px;border-radius:8px;background:#2A2A30;border:1px solid #38383F;display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 10 10" fill="none" style="transform:rotate(180deg)"><path d="M3 1.5L7 5l-4 3.5" stroke="#EDEBE4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></div>
+    <span style="font-family:'Spline Sans Mono',monospace;font-size:12px;letter-spacing:.1em">GARDEN LAYOUT</span>
+  </div>
+  <!-- top-right presence + zoom -->
+  <div style="position:absolute;top:14px;right:16px;display:flex;align-items:center;gap:10px;z-index:2">
+    <div style="display:flex;align-items:center;gap:6px;font-family:'Spline Sans Mono',monospace;font-size:10.5px;color:#8FCF9C"><span style="width:6px;height:6px;border-radius:50%;background:#4CC268;display:block;box-shadow:0 0 8px #4CC268"></span>IPAD IN PAD</div>
+    <div style="display:flex;align-items:center;background:#2A2A30;border:1px solid #38383F;border-radius:8px">
+      <span style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:#B9B7AE">−</span>
+      <span style="min-width:44px;text-align:center;font-family:'Spline Sans Mono',monospace;font-size:11px">125%</span>
+      <span style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:#B9B7AE">+</span>
+    </div>
+  </div>
+  <!-- paper -->
+  <div style="position:absolute;left:110px;right:110px;top:56px;bottom:70px;border-radius:6px;background:radial-gradient(#D9D3BE 1px,#F4F1E7 1px);background-size:11px 11px;box-shadow:0 20px 60px rgba(0,0,0,.6)">
+    <svg width="640" height="304" viewBox="0 0 640 304" fill="none" style="position:absolute;inset:0;width:100%;height:100%">
+      <path d="M100 220 C 140 100, 250 80, 320 130 S 460 230, 540 120" stroke="#26231C" stroke-width="2.2" stroke-linecap="round"></path>
+      <path d="M150 226 c 15-24 30-33 54-35" stroke="#2B5E3C" stroke-width="1.8" stroke-linecap="round"></path>
+      <circle cx="480" cy="86" r="22" stroke="#A3502B" stroke-width="1.8"></circle>
+    </svg>
+    <div style="position:absolute;left:390px;top:168px;display:flex;align-items:center;gap:6px">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 1.5l10 4.5-4.4 1.6L6 12z" fill="#E8A33D"></path></svg>
+      <span style="background:#E8A33D;color:#1A1A1E;font-family:'Spline Sans Mono',monospace;font-size:9.5px;letter-spacing:.06em;border-radius:4px;padding:3px 7px">IPAD</span>
+    </div>
+  </div>
+  <!-- floating tool dock -->
+  <div style="position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:flex;align-items:center;gap:12px;background:#26262B;border:1px solid #38383F;border-radius:12px;padding:8px 14px;box-shadow:0 10px 30px rgba(0,0,0,.5);z-index:2">
+    <div style="display:flex;gap:2px">
+      <div style="width:32px;height:30px;border-radius:7px;background:#E8A33D;display:flex;align-items:center;justify-content:center"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9.7 1.8l2.5 2.5L5 11.5l-3.2.7.7-3.2z" stroke="#1A1A1E" stroke-width="1.4" stroke-linejoin="round"></path></svg></div>
+      <div style="width:32px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M8.5 1.5h3v3L6 10H3V7z" stroke="#B9B7AE" stroke-width="1.4" stroke-linejoin="round"></path><path d="M3 12.5h8" stroke="#B9B7AE" stroke-width="1.8" stroke-linecap="round"></path></svg></div>
+      <div style="width:32px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9.7 1.8l2.5 2.5L5 11.5l-3.2.7.7-3.2z" stroke="#B9B7AE" stroke-width="1.4" stroke-linejoin="round" stroke-dasharray="2 2"></path></svg></div>
+      <div style="width:32px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 12L1.8 8.8a1.5 1.5 0 0 1 0-2.1L7 1.5a1.5 1.5 0 0 1 2.1 0l3.2 3.2a1.5 1.5 0 0 1 0 2.1L8 11.2M5 12h7.5" stroke="#B9B7AE" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"></path></svg></div>
+    </div>
+    <div style="width:1px;height:20px;background:#38383F"></div>
+    <div style="display:flex;gap:7px;align-items:center">
+      <span style="width:16px;height:16px;border-radius:50%;background:#26231C;display:block;box-shadow:0 0 0 2px #26262B,0 0 0 3.5px #E8A33D"></span>
+      <span style="width:16px;height:16px;border-radius:50%;background:#3D5FA8;display:block"></span>
+      <span style="width:16px;height:16px;border-radius:50%;background:#B84A4A;display:block"></span>
+      <span style="width:16px;height:16px;border-radius:50%;background:#3F7D53;display:block"></span>
+      <span style="width:16px;height:16px;border-radius:50%;background:#C98A3B;display:block"></span>
+      <span style="width:16px;height:16px;border-radius:50%;background:#7E58A8;display:block"></span>
+    </div>
+    <div style="width:1px;height:20px;background:#38383F"></div>
+    <div style="display:flex;align-items:center;gap:8px;width:100px"><div style="flex:1;height:3px;border-radius:2px;background:#38383F;position:relative"><div style="position:absolute;left:0;top:0;bottom:0;width:35%;background:#E8A33D;border-radius:2px"></div><div style="position:absolute;left:35%;top:50%;transform:translate(-50%,-50%);width:12px;height:12px;border-radius:50%;background:#EDEBE4"></div></div></div>
+    <div style="width:1px;height:20px;background:#38383F"></div>
+    <div style="width:30px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;color:#B9B7AE">T</div>
+    <div style="width:30px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="1.5" width="11" height="11" rx="2" stroke="#B9B7AE" stroke-width="1.3"></rect><circle cx="4.6" cy="4.6" r=".9" fill="#B9B7AE"></circle><circle cx="9.4" cy="4.6" r=".9" fill="#B9B7AE"></circle><circle cx="4.6" cy="9.4" r=".9" fill="#B9B7AE"></circle><circle cx="9.4" cy="9.4" r=".9" fill="#B9B7AE"></circle></svg></div>
+  </div>
+</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Try next: "go with <a class="dv-oid" href="#1a">1a</a>, show it on iPad too" · "mix <a class="dv-oid" href="#1b">1b</a>'s grid with <a class="dv-oid" href="#1a">1a</a>'s warmth" · "make <a class="dv-oid" href="#1c">1c</a>'s dock draggable"</p>
+</section>
+
+</x-dc>
+</body>
+</html>

@@ -5,6 +5,11 @@ it live on the other, each with a ghost cursor showing the other's pointer.
 Sketches are saved like Notes and sync between the two devices when they're near
 each other — **peer-to-peer, no account, no server, no cost.**
 
+The UI follows the **Studio** design (`design_handoff_quill_redesign/`): a
+sidebar + thumbnail-grid home, a single-row drawing bar with a five-tool
+switcher (Text is a tool), hairline borders on a warm off-white palette, and
+the blue quill app icon.
+
 ## How it works
 
 - **One codebase** — SwiftUI + PencilKit, shipped to iPad (iOS) and to Mac via
@@ -18,24 +23,28 @@ each other — **peer-to-peer, no account, no server, no cost.**
   so they don't resurrect, but a peer edit newer than the delete brings it back.
 - **Local storage** — each device keeps sketches on disk (Application Support),
   one small metadata file + one drawing file per sketch. No Core Data, no iCloud.
-- **Sections** — pads group into folders (create/rename/delete; deleting a
-  section moves its pads to Unfiled). Folders sync too; concurrent renames
-  resolve deterministically (newest wins), never fork.
-- **Paper styles** — blank / lines / grid / dots per pad, switchable from the
-  pad's toolbar; the style syncs with the pad (live, if both are viewing it).
-- **Mac tool strip** — the Mac has its own pen/marker/pencil/eraser, six
-  colors, and a width slider (Catalyst's PKToolPicker palette is unreliable, so
-  it isn't used there; the iPad keeps Apple's full palette).
-- **Text blocks** — toggle text mode (T button) to add text anywhere: tap a
-  block for its control strip (drag ✥, resize A−/A+, delete); Esc deselects,
-  tap empty space deselects then creates. Pen input pauses in text mode.
+- **Home** — sidebar (search, All pads / Unsorted / folders, connection
+  status) beside a grid of live pad thumbnails rendered from each pad's ink
+  over its paper style. Conflict forks nest under their originals with a FORK
+  badge; search results highlight the matched title or text snippet.
+- **Folders** — create/rename/delete from the sidebar (deleting moves pads to
+  Unsorted). Folders sync too; concurrent renames resolve deterministically
+  (newest wins), never fork.
+- **Paper styles** — blank / lines / grid / dots per pad via the paper chip;
+  the style syncs with the pad (live, if both are viewing it).
+- **Tools** — the Mac bar has a five-tool switcher: pen / marker / pencil /
+  eraser / **Text**, plus six ink colors and a width slider (Catalyst's
+  PKToolPicker is unreliable, so the Mac doesn't use it; the iPad keeps
+  Apple's full palette and gets Text as a nav-bar tool button).
+- **Text blocks** — pick the Text tool, tap anywhere: the selected block shows
+  corner handles and a floating strip (drag ✥, resize A−/A+, delete). Esc
+  deselects, then exits the tool. Pen input pauses while Text is active.
   Blocks sync with the pad, live when co-viewing.
 - **Zoom** — pinch on both platforms (up to 4×); the Mac also has − / % / +
   buttons. Zoom is per-device; paper, text, and the peer cursor stay aligned.
-- **Search** — the main page's search field matches pad titles and text-block
-  content.
-- **Presence** — the pad list shows an eye badge on whichever pad the other
-  device has open; inside a shared pad you see the peer's name and cursor.
+- **Presence** — grid cards show an eye pill when the other device has that
+  pad open; inside a shared pad you see a green chip and the peer's cursor
+  (accent triangle + name pill).
 - **Sync-on-close cadence** — while you draw, the other device doesn't
   re-download the pad; it catches up the moment you close it (or streams live
   if it's viewing the same pad). Radios also go quiet once connected. Keeps
@@ -101,10 +110,13 @@ store (CRUD + last-writer-wins).
 
 ```
 Quill/
-  QuillApp.swift                     app entry; wires store + connectivity
+  QuillApp.swift                     app entry; wires stores + connectivity
+  Theme/QuillTheme.swift             Studio design tokens (colors/radii/type)
   Model/
     SketchMetadata.swift             on-disk metadata + list/manifest digest
     SketchStore.swift                local file-based sketch library
+    ThumbnailStore.swift             cached PKDrawing previews for the grid
+    HomeModels.swift                 search matches, conflict pairing, labels
   Connectivity/
     SyncMessage.swift                Codable wire format (live + catch-up)
     MultipeerSession.swift           MPC transport (advertise/browse/send)
@@ -113,12 +125,17 @@ Quill/
     SyncReconciler.swift             pure pad-sync decisions (pull/fork/tombstone)
     SectionSync.swift                pure section merge (LWW, deterministic)
   Views/
-    SketchListView.swift             Notes-like list (new/rename/delete)
-    SketchDetailView.swift           canvas screen + cursor overlay wiring
-    CanvasView.swift                 PKCanvasView bridge; strokes + cursor
+    SketchListView.swift             home composer (sidebar | grid/search/empty)
+    Home/                            sidebar, grid, cards, search, empty state
+    SketchDetailView.swift           drawing screen: bars, canvas, overlays
+    MacToolStrip.swift               Mac 5-tool switcher (incl. Text tool)
+    CanvasView.swift                 PKCanvasView bridge; strokes/cursor/zoom
+    TextBlockLayer.swift             text blocks + floating control strip
     RemoteCursorOverlay.swift        the peer's ghost cursor
-  Resources/                         Info.plist, entitlements, assets
+    PaperBackgroundView.swift        lines/grid/dots paper rendering
+  Resources/                         Info.plist, entitlements, assets + icon
 QuillTests/                          unit tests
+design_handoff_quill_redesign/       Studio design spec, mocks, icon source
 project.yml                          XcodeGen spec (source of truth)
 ```
 
