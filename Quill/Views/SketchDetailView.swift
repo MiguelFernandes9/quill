@@ -146,23 +146,23 @@ struct SketchDetailView: View {
                 requestZoom(step: -0.5)
             } label: {
                 Image(systemName: "minus.magnifyingglass")
-                    .font(.system(size: 14))
-                    .frame(width: 32, height: 30)
+                    .font(.system(size: 16))
+                    .frame(width: 36, height: 34)
             }
             Button {
                 requestZoomReset()
             } label: {
                 Text("\(Int((canvasScale * 100).rounded()))%")
-                    .font(.system(size: 12.5, weight: .medium).monospacedDigit())
-                    .frame(minWidth: 48)
+                    .font(.system(size: 14, weight: .medium).monospacedDigit())
+                    .frame(minWidth: 54)
             }
             .help("Reset zoom")
             Button {
                 requestZoom(step: 0.5)
             } label: {
                 Image(systemName: "plus.magnifyingglass")
-                    .font(.system(size: 14))
-                    .frame(width: 32, height: 30)
+                    .font(.system(size: 16))
+                    .frame(width: 36, height: 34)
             }
         }
         .buttonStyle(.plain)
@@ -269,26 +269,26 @@ struct SketchDetailView: View {
                 dismiss()
             } label: {
                 Image(systemName: "chevron.backward")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(QuillTheme.ink)
-                    .frame(width: 34, height: 30)
+                    .frame(width: 38, height: 34)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .background(escHandler)
 
             Text(sketch.title)
-                .font(.system(size: 13.5, weight: .semibold))
+                .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(QuillTheme.ink)
                 .lineLimit(1)
             if let sectionName {
                 Text(sectionName)
-                    .font(.system(size: 12))
+                    .font(.system(size: 14))
                     .foregroundStyle(QuillTheme.muted)
                     .lineLimit(1)
             }
 
-            QuillTheme.hairline.frame(width: 1, height: 22)
+            QuillTheme.hairline.frame(width: 1, height: 24)
 
             MacToolStrip(tool: $macTool, textActive: $editingTexts)
 

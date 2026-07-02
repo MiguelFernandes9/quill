@@ -34,7 +34,7 @@ struct MacToolStrip: View {
                 if !editing { apply() }
             }
             .tint(Color(uiColor: selectedUIColor))
-            .frame(width: 110)
+            .frame(width: 130)
             .opacity(textActive ? 0.35 : 1)
             .disabled(textActive)
             .animation(.easeInOut(duration: 0.15), value: textActive)
@@ -72,9 +72,9 @@ struct MacToolStrip: View {
             apply()
         } label: {
             Image(systemName: icon)
-                .font(.system(size: 14, weight: .medium))
+                .font(.system(size: 16, weight: .medium))
                 .foregroundStyle(selected && isText ? .white : QuillTheme.ink)
-                .frame(width: 36, height: 28)
+                .frame(width: 42, height: 32)
                 .background(
                     RoundedRectangle(cornerRadius: 6)
                         .fill(selected ? (isText ? QuillTheme.accent : QuillTheme.surface) : .clear)
@@ -100,7 +100,7 @@ struct MacToolStrip: View {
                 } label: {
                     RoundedRectangle(cornerRadius: 5)
                         .fill(Color(uiColor: entry.ui))
-                        .frame(width: 17, height: 17)
+                        .frame(width: 20, height: 20)
                         .overlay(
                             RoundedRectangle(cornerRadius: 6.5)
                                 .stroke(QuillTheme.accent, lineWidth: 1.5)

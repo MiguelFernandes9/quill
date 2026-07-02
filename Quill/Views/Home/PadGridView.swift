@@ -72,6 +72,8 @@ struct PadGridView: View {
         }
     }
 
+    @State private var newPadHovering = false
+
     private var newPadCard: some View {
         Button(action: onNewPad) {
             VStack(spacing: 6) {
@@ -80,16 +82,18 @@ struct PadGridView: View {
                 Text("New pad")
                     .font(QuillTheme.rowTitle())
             }
-            .foregroundStyle(QuillTheme.muted)
+            .foregroundStyle(newPadHovering ? QuillTheme.accent : QuillTheme.muted)
             .frame(maxWidth: .infinity)
             .frame(height: QuillTheme.thumbnailHeight + 42)
             .background(
                 RoundedRectangle(cornerRadius: QuillTheme.cardRadius)
-                    .stroke(QuillTheme.dashedCard, style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
+                    .stroke(newPadHovering ? QuillTheme.accent : QuillTheme.dashedCard,
+                            style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
             )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .onHover { newPadHovering = $0 }
     }
 
     // MARK: - Conflicts (mock 2c)
