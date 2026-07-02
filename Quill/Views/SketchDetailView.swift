@@ -143,35 +143,42 @@ struct SketchDetailView: View {
     private var zoomControls: some View {
         HStack(spacing: 0) {
             Button {
-                requestZoom(canvasScale - 0.5)
+                requestZoom(step: -0.5)
             } label: {
                 Image(systemName: "minus.magnifyingglass")
-                    .font(.system(size: 14))
-                    .frame(width: 30, height: 28)
+                    .font(.system(size: 17))
+                    .frame(width: 38, height: 34)
             }
             Button {
-                requestZoom(1)
+                requestZoomReset()
             } label: {
                 Text("\(Int((canvasScale * 100).rounded()))%")
-                    .font(.footnote.monospacedDigit().weight(.medium))
-                    .frame(minWidth: 48)
+                    .font(.subheadline.monospacedDigit().weight(.medium))
+                    .frame(minWidth: 56)
             }
             .help("Reset zoom")
             Button {
-                requestZoom(canvasScale + 0.5)
+                requestZoom(step: 0.5)
             } label: {
                 Image(systemName: "plus.magnifyingglass")
-                    .font(.system(size: 14))
-                    .frame(width: 30, height: 28)
+                    .font(.system(size: 17))
+                    .frame(width: 38, height: 34)
             }
         }
         .buttonStyle(.plain)
-        .background(Color(uiColor: .quaternarySystemFill), in: RoundedRectangle(cornerRadius: 7))
+        .background(Color(uiColor: .quaternarySystemFill), in: RoundedRectangle(cornerRadius: 8))
     }
 
-    private func requestZoom(_ scale: CGFloat) {
-        let clamped = min(4, max(1, scale))
+    private func requestZoom(step: CGFloat) {
+        // Step from the last REQUESTED zoom, not from canvasScale — the state
+        // can lag an in-flight animation, which made repeated presses no-ops.
+        let base = zoomRequest?.scale ?? canvasScale
+        let clamped = min(4, max(1, base + step))
         zoomRequest = (id: (zoomRequest?.id ?? 0) + 1, scale: clamped)
+    }
+
+    private func requestZoomReset() {
+        zoomRequest = (id: (zoomRequest?.id ?? 0) + 1, scale: 1)
     }
     #endif
 
@@ -202,8 +209,8 @@ struct SketchDetailView: View {
                 dismiss()
             } label: {
                 Image(systemName: "chevron.backward")
-                    .font(.system(size: 16, weight: .semibold))
-                    .frame(width: 34, height: 30)
+                    .font(.system(size: 19, weight: .semibold))
+                    .frame(width: 42, height: 36)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -221,7 +228,7 @@ struct SketchDetailView: View {
                 .accessibilityHidden(true)
             )
 
-            Divider().frame(height: 18)
+            Divider().frame(height: 22)
 
             MacToolStrip(tool: $macTool)
                 .disabled(editingTexts)
@@ -233,25 +240,25 @@ struct SketchDetailView: View {
 
             if connectivity.peerOpenSketchID == sketch.id {
                 Image(systemName: "person.fill")
-                    .font(.system(size: 15))
+                    .font(.system(size: 18))
                     .foregroundStyle(.green)
                     .help("\(connectivity.peerName ?? "Peer") is in this pad")
             }
 
             textModeButton
                 .buttonStyle(.plain)
-                .font(.system(size: 16, weight: .medium))
-                .frame(width: 34, height: 30)
+                .font(.system(size: 19, weight: .medium))
+                .frame(width: 42, height: 36)
                 .background(editingTexts ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear),
-                            in: RoundedRectangle(cornerRadius: 7))
+                            in: RoundedRectangle(cornerRadius: 8))
 
             paperMenu
-                .font(.system(size: 16, weight: .medium))
-                .frame(width: 34, height: 30)
+                .font(.system(size: 19, weight: .medium))
+                .frame(width: 42, height: 36)
                 .contentShape(Rectangle())
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
     }
     #endif
 

@@ -43,7 +43,7 @@ struct MacToolStrip: View {
             Divider().frame(height: 16)
 
             // Colors
-            HStack(spacing: 7) {
+            HStack(spacing: 9) {
                 ForEach(Self.colors, id: \.name) { entry in
                     Button {
                         colorName = entry.name
@@ -52,21 +52,21 @@ struct MacToolStrip: View {
                     } label: {
                         Circle()
                             .fill(Color(uiColor: entry.color))
-                            .frame(width: 18, height: 18)
+                            .frame(width: 22, height: 22)
                             .overlay(Circle().stroke(Color.accentColor,
-                                                     lineWidth: colorName == entry.name ? 2 : 0))
+                                                     lineWidth: colorName == entry.name ? 2.5 : 0))
                     }
                     .buttonStyle(.plain)
                 }
             }
 
-            Divider().frame(height: 18)
+            Divider().frame(height: 22)
 
             // Width
             Slider(value: $width, in: 1...24, step: 1) { editing in
                 if !editing { rebuildTool() }
             }
-            .frame(width: 110)
+            .frame(width: 130)
         }
         .onAppear { rebuildTool() }
     }
@@ -74,10 +74,10 @@ struct MacToolStrip: View {
     private func toolButton(icon: String, selected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.system(size: 16, weight: .medium))
-                .frame(width: 34, height: 30)
+                .font(.system(size: 19, weight: .medium))
+                .frame(width: 42, height: 36)
                 .background(selected ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear),
-                            in: RoundedRectangle(cornerRadius: 7))
+                            in: RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(.plain)
     }
