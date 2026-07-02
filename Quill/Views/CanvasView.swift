@@ -38,6 +38,11 @@ struct CanvasView: UIViewRepresentable {
         canvas.isScrollEnabled = true              // pan while zoomed in
         canvas.alwaysBounceVertical = false
         canvas.alwaysBounceHorizontal = false
+        // Never auto-inset: on Catalyst the safe-area inset adjustment can
+        // feedback-loop with a zoomed scroll view (offset oscillates, delegate
+        // storms, main thread livelocks — the frozen bar after a zoom press).
+        canvas.contentInsetAdjustmentBehavior = .never
+        canvas.clipsToBounds = true
         canvas.backgroundColor = .clear            // paper pattern shows through
         canvas.isOpaque = false
         canvas.delegate = context.coordinator
@@ -276,12 +281,17 @@ struct CanvasView: UIViewRepresentable {
             reportTransform(scrollView) // final value after a pinch settles
         }
 
+        private var lastReportedTransform: (CGFloat, CGPoint)?
+
         private func reportTransform(_ scrollView: UIScrollView) {
             // Delegate callbacks can land inside a SwiftUI view update (e.g.
             // when a layout pass adjusts contentOffset) — hop off it before
-            // touching the parent's @State.
+            // touching the parent's @State. Dedupe so delegate chatter with
+            // unchanged values never churns renders.
             let scale = scrollView.zoomScale
             let offset = scrollView.contentOffset
+            if let last = lastReportedTransform, last.0 == scale, last.1 == offset { return }
+            lastReportedTransform = (scale, offset)
             DispatchQueue.main.async { [weak self] in
                 self?.parent.onTransform(scale, offset)
             }
