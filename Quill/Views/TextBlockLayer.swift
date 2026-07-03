@@ -90,20 +90,12 @@ struct TextBlockLayer: View {
             // A press on an existing block edits it; on empty paper it plants
             // a new one. Bounds are estimated for auto-sized blocks — a miss
             // just means a fresh block next to the old one.
-            if let hit = texts.last(where: { approxRect($0).contains(request.point) }) {
+            if let hit = texts.last(where: { $0.approxRect.contains(request.point) }) {
                 focused = hit.id
             } else {
                 addBlock(at: request.point)
             }
         }
-    }
-
-    /// Rough on-canvas rect of a block (auto-sized ones have no stored box).
-    private func approxRect(_ block: TextBlock) -> CGRect {
-        CGRect(x: block.x, y: block.y,
-               width: block.width ?? 240,
-               height: block.height ?? max(44, block.size * 1.6 + 14))
-            .insetBy(dx: -8, dy: -8)
     }
 
     // MARK: - Block
