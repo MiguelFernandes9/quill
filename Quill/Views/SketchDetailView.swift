@@ -98,6 +98,7 @@ struct SketchDetailView: View {
                     tool: macToolOrNil,
                     zoomRequest: zoomRequest,
                     contentBottomHint: textBottomEdge,
+                    contentRightHint: textRightEdge,
                     onDrawingChanged: { data in
                         store.saveDrawing(sketch.id, data: data,
                                           bumpVersion: connectivity.shouldBumpVersion(for: sketch.id))
@@ -224,12 +225,15 @@ struct SketchDetailView: View {
         })?.id
     }
 
-    /// Lowest text-block edge (content coordinates) so the page grows past
-    /// blocks too, not only ink. Auto-height blocks are estimated — the page
-    /// only ever over-provisions, never clips.
+    /// Farthest text-block edges (content coordinates) so the page grows
+    /// past blocks too, not only ink. Auto-sized blocks are estimated — the
+    /// page only ever over-provisions, never clips.
     private var textBottomEdge: CGFloat {
-        texts.map { CGFloat($0.y) + CGFloat($0.height ?? max(44, $0.size * 1.6)) }
-            .max() ?? 0
+        texts.map { blockFrames[$0.id]?.maxY ?? $0.approxRect.maxY }.max() ?? 0
+    }
+
+    private var textRightEdge: CGFloat {
+        texts.map { blockFrames[$0.id]?.maxX ?? $0.approxRect.maxX }.max() ?? 0
     }
 
     private var macToolOrNil: PKTool? {

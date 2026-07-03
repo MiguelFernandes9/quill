@@ -22,9 +22,11 @@ struct CanvasView: UIViewRepresentable {
     var tool: PKTool?
     /// Programmatic zoom request (id increments per request; scale target).
     var zoomRequest: (id: Int, scale: CGFloat)?
-    /// Lowest content edge the page must contain besides ink (text blocks,
-    /// content coordinates) — the page grows past it like it does for ink.
+    /// Farthest content edges the page must contain besides ink (text
+    /// blocks, content coordinates) — the page grows past them like it does
+    /// for ink.
     var contentBottomHint: CGFloat = 0
+    var contentRightHint: CGFloat = 0
     var onDrawingChanged: (Data) -> Void
     var onStrokeDelta: (Data) -> Void
     /// The whole drawing, after a change an append delta can't carry (erase /
@@ -110,8 +112,10 @@ struct CanvasView: UIViewRepresentable {
         if let tool {
             canvas.tool = tool
         }
-        if contentBottomHint != context.coordinator.bottomHint {
+        if contentBottomHint != context.coordinator.bottomHint
+            || contentRightHint != context.coordinator.rightHint {
             context.coordinator.bottomHint = contentBottomHint
+            context.coordinator.rightHint = contentRightHint
             // Defer: contentSize growth can move scroll internals; never
             // mutate them inside a SwiftUI view update.
             let coordinator = context.coordinator
@@ -171,14 +175,19 @@ struct CanvasView: UIViewRepresentable {
         /// Last applied programmatic zoom request (dedupes updateUIView calls).
         var lastZoomRequestID = 0
 
-        /// Page height in content coordinates (zoom 1). Grows via `PageGrowth`
-        /// as ink or text nears the bottom; never shrinks mid-session.
+        /// Page size in content coordinates (zoom 1). Grows via `PageGrowth`
+        /// as ink or text nears the bottom/right edge; never shrinks
+        /// mid-session. Width matters across devices: the Mac's viewport is
+        /// wider, so its ink can land beyond a narrower iPad's page.
         private var pageHeight: CGFloat = 0
-        /// Cached lowest ink edge (recomputing drawing.bounds per layout frame
-        /// would be O(strokes) during every scroll/zoom tick).
+        private var pageWidth: CGFloat = 0
+        /// Cached farthest ink edges (recomputing drawing.bounds per layout
+        /// frame would be O(strokes) during every scroll/zoom tick).
         private var inkBottom: CGFloat = 0
-        /// Lowest text-block edge, pushed in from updateUIView.
+        private var inkRight: CGFloat = 0
+        /// Farthest text-block edges, pushed in from updateUIView.
         var bottomHint: CGFloat = 0
+        var rightHint: CGFloat = 0
 
         /// True while applying peer content, so the resulting change callback
         /// never rebroadcasts it (which would ping-pong forever).
@@ -409,10 +418,11 @@ struct CanvasView: UIViewRepresentable {
 
         // MARK: Infinite page
 
-        /// Recompute the cached ink bottom from the drawing, then resize.
+        /// Recompute the cached ink edges from the drawing, then resize.
         func refreshInkBottom(_ canvas: PKCanvasView) {
             let bounds = canvas.drawing.bounds
             inkBottom = bounds.isNull ? 0 : bounds.maxY
+            inkRight = bounds.isNull ? 0 : bounds.maxX
             updateContentSize(canvas)
         }
 
@@ -422,11 +432,14 @@ struct CanvasView: UIViewRepresentable {
         func updateContentSize(_ canvas: PKCanvasView) {
             let viewport = canvas.bounds.size
             guard viewport.width > 0, viewport.height > 0 else { return }
-            pageHeight = PageGrowth.height(current: pageHeight,
+            pageHeight = PageGrowth.extent(current: pageHeight,
                                            viewport: viewport.height,
-                                           contentBottom: max(inkBottom, bottomHint))
+                                           contentEdge: max(inkBottom, bottomHint))
+            pageWidth = PageGrowth.extent(current: pageWidth,
+                                          viewport: viewport.width,
+                                          contentEdge: max(inkRight, rightHint))
             let scale = canvas.zoomScale
-            let target = CGSize(width: viewport.width * scale,
+            let target = CGSize(width: pageWidth * scale,
                                 height: pageHeight * scale)
             if abs(canvas.contentSize.width - target.width) > 0.5 ||
                 abs(canvas.contentSize.height - target.height) > 0.5 {
