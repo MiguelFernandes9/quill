@@ -32,6 +32,12 @@ enum CanvasCommand {
     case deleteStrokes(IndexSet)
     /// Append offset copies of the selected strokes.
     case duplicateStrokes(IndexSet)
+    /// Lift the selected strokes out of the drawing for a finger drag — the
+    /// canvas hands back an image that rides the selection box at full frame
+    /// rate (re-rasterizing the canvas per tick was visibly laggy).
+    case beginStrokeDrag(IndexSet)
+    /// Drop the lifted strokes, translated by (dx, dy).
+    case endStrokeDrag(dx: CGFloat, dy: CGFloat)
 }
 
 /// Owns the `MultipeerSession`, encodes/decodes `SyncMessage`, and bridges the

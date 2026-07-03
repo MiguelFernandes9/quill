@@ -1,27 +1,30 @@
 import SwiftUI
 
 /// A finger-selected set of strokes: indices into the drawing plus their
-/// on-canvas box (content coordinates).
+/// on-canvas box (content coordinates). While a drag is in flight the strokes
+/// are lifted out of the canvas and `dragImage` rides the box instead.
 struct StrokeSelection: Equatable {
     let indices: IndexSet
     var rect: CGRect
+    var dragImage: UIImage?
 }
 
 /// The ink counterpart of a focused text block (iPad): a dashed accent box
 /// around the selected strokes with a dark strip below — drag the box to move
 /// the ink, duplicate or delete it. Lives in content coordinates; the parent
 /// applies the canvas zoom/pan transform.
+///
+/// Dragging lifts the strokes into an image (`.beginStrokeDrag`) so box and
+/// ink move together at full frame rate — mutating the drawing per tick
+/// re-rasterizes the whole canvas and visibly lagged. `.endStrokeDrag` drops
+/// the strokes translated; the canvas re-selects them.
 struct StrokeSelectionOverlay: View {
     @Binding var selection: StrokeSelection?
-    /// Routes edits into the canvas (`.transformStrokes` / `.deleteStrokes` /
-    /// `.duplicateStrokes`).
+    /// Routes edits into the canvas.
     var onCommand: (CanvasCommand) -> Void
 
-    /// Translation not yet applied to the ink (kept tiny by the live apply).
     @State private var dragOffset: CGSize = .zero
-    /// Translation already applied to the ink during this drag.
-    @State private var applied: CGSize = .zero
-    @State private var lastApplyTime: CFTimeInterval = 0
+    @State private var lifting = false
 
     private let stripButton = CGSize(width: 48, height: 44)
 
@@ -35,6 +38,13 @@ struct StrokeSelectionOverlay: View {
                         .stroke(QuillTheme.accent,
                                 style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
                 )
+                .overlay {
+                    if let image = current.dragImage {
+                        Image(uiImage: image)
+                            .resizable()
+                            .padding(10) // box = rect + 10pt on every side
+                    }
+                }
                 .frame(width: box.width, height: box.height)
                 .contentShape(RoundedRectangle(cornerRadius: 8))
                 .overlay(alignment: .bottom) {
@@ -47,38 +57,23 @@ struct StrokeSelectionOverlay: View {
         }
     }
 
-    /// The ink follows the finger: the pending translation is applied to the
-    /// strokes DURING the drag, throttled to ~20 Hz (every apply re-rasterizes
-    /// the canvas). The box shows only the tiny not-yet-applied remainder, so
-    /// ink and box move as one. The selection rect is read through the binding
-    /// — it advances with each live apply.
     private func dragGesture(_ current: StrokeSelection) -> some Gesture {
         DragGesture(minimumDistance: 2)
             .onChanged { value in
-                dragOffset = CGSize(width: value.translation.width - applied.width,
-                                    height: value.translation.height - applied.height)
-                let now = CACurrentMediaTime()
-                guard now - lastApplyTime > 0.05 else { return }
-                applyPending(current.indices)
-                lastApplyTime = now
+                if !lifting {
+                    lifting = true
+                    onCommand(.beginStrokeDrag(current.indices))
+                }
+                dragOffset = value.translation
             }
             .onEnded { value in
-                dragOffset = CGSize(width: value.translation.width - applied.width,
-                                    height: value.translation.height - applied.height)
-                applyPending(current.indices)
-                applied = .zero
+                lifting = false
+                dragOffset = .zero
+                // The canvas re-inserts the strokes translated and re-selects
+                // them (fresh indices + rect arrive via onInkSelection).
+                onCommand(.endStrokeDrag(dx: value.translation.width,
+                                         dy: value.translation.height))
             }
-    }
-
-    /// Move the ink by the un-applied remainder and advance the box with it.
-    private func applyPending(_ indices: IndexSet) {
-        let dx = dragOffset.width
-        let dy = dragOffset.height
-        guard abs(dx) > 0.5 || abs(dy) > 0.5 else { return }
-        onCommand(.transformStrokes(indices, dx: dx, dy: dy))
-        selection?.rect = (selection?.rect ?? .zero).offsetBy(dx: dx, dy: dy)
-        applied = CGSize(width: applied.width + dx, height: applied.height + dy)
-        dragOffset = .zero
     }
 
     private func strip(_ current: StrokeSelection) -> some View {

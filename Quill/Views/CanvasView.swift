@@ -48,6 +48,9 @@ struct CanvasView: UIViewRepresentable {
     /// iPad: a finger tapped ink — these strokes (and their box, content
     /// coordinates) become the selection.
     var onInkSelection: ((IndexSet, CGRect) -> Void)?
+    /// iPad: the lifted strokes' image for a drag in flight (see
+    /// `.beginStrokeDrag`), with their box.
+    var onDragImage: ((UIImage, CGRect) -> Void)?
     /// iPad: is a text block currently active? While it is, the canvas stays
     /// scrollable, so empty taps must deselect (and show no menu).
     var textActive: (() -> Bool)?
@@ -144,6 +147,7 @@ struct CanvasView: UIViewRepresentable {
     /// Flush the last (debounced) save when leaving the canvas.
     static func dismantleUIView(_ uiView: PKCanvasView, coordinator: Coordinator) {
         coordinator.detachToolPicker(from: uiView)
+        coordinator.restoreDraggedStrokes()
         coordinator.flushSave()
     }
 
@@ -240,7 +244,10 @@ struct CanvasView: UIViewRepresentable {
             // Never lose ink to a backgrounded app.
             NotificationCenter.default
                 .publisher(for: UIApplication.didEnterBackgroundNotification)
-                .sink { [weak self] _ in self?.flushSave() }
+                .sink { [weak self] _ in
+                    self?.restoreDraggedStrokes()
+                    self?.flushSave()
+                }
                 .store(in: &cancellables)
 
             #if !targetEnvironment(macCatalyst)
@@ -347,6 +354,7 @@ struct CanvasView: UIViewRepresentable {
                 dirty = false // store already has exactly this state
 
             case .flush:
+                restoreDraggedStrokes()
                 flushSave()
 
             case let .transformStrokes(indices, dx, dy):
@@ -358,6 +366,12 @@ struct CanvasView: UIViewRepresentable {
             case let .duplicateStrokes(indices):
                 applyLocalEdit { StrokeEdit.duplicate($0, indices: indices) }
 
+            case let .beginStrokeDrag(indices):
+                beginStrokeDrag(indices)
+
+            case let .endStrokeDrag(dx, dy):
+                endStrokeDrag(dx: dx, dy: dy)
+
             case .setPaper, .setTexts:
                 break // paper + text blocks render outside the canvas; the detail view handles them
             }
@@ -365,8 +379,9 @@ struct CanvasView: UIViewRepresentable {
 
         /// A whole-drawing edit from the selection overlay (move / delete /
         /// duplicate). Applied without the auto-broadcast (none of these are
-        /// append deltas), then persisted and shipped as a full resync.
-        private func applyLocalEdit(_ edit: (PKDrawing) -> PKDrawing) {
+        /// append deltas), then persisted and — unless `sync` is off (a drag
+        /// in flight ships once, on drop) — sent as a full resync.
+        private func applyLocalEdit(sync: Bool = true, _ edit: (PKDrawing) -> PKDrawing) {
             guard let canvas else { return }
             applyPendingDeltas() // fold in buffered peer strokes first
             let edited = edit(canvas.drawing)
@@ -377,7 +392,54 @@ struct CanvasView: UIViewRepresentable {
             refreshInkBottom(canvas)
             dirty = true
             saveSubject.send(())
-            resyncSubject.send(())
+            if sync { resyncSubject.send(()) }
+        }
+
+        // MARK: Ink drag (lift → image → drop)
+
+        /// Strokes lifted out of the drawing while the finger drags their
+        /// image. Restored by `flushSave` if anything interrupts the drag.
+        private var draggedStrokes: [PKStroke]?
+
+        private func beginStrokeDrag(_ indices: IndexSet) {
+            guard draggedStrokes == nil, let canvas else { return }
+            let strokes = indices.compactMap {
+                canvas.drawing.strokes.indices.contains($0) ? canvas.drawing.strokes[$0] : nil
+            }
+            let bounds = StrokeEdit.bounds(of: indices, in: canvas.drawing)
+            guard !strokes.isEmpty, !bounds.isNull, bounds.width > 0, bounds.height > 0
+            else { return }
+            draggedStrokes = strokes
+            let image = PKDrawing(strokes: strokes)
+                .image(from: bounds, scale: canvas.traitCollection.displayScale)
+            // No resync while lifted: the peer gets one clean update on drop.
+            applyLocalEdit(sync: false) { StrokeEdit.delete($0, indices: indices) }
+            parent.onDragImage?(image, bounds)
+        }
+
+        private func endStrokeDrag(dx: CGFloat, dy: CGFloat) {
+            guard let strokes = draggedStrokes, let canvas else { return }
+            draggedStrokes = nil
+            let translated = strokes.map { stroke -> PKStroke in
+                var copy = stroke
+                copy.transform = copy.transform
+                    .concatenating(CGAffineTransform(translationX: dx, y: dy))
+                return copy
+            }
+            applyLocalEdit { PKDrawing(strokes: $0.strokes + translated) }
+            // Re-select the dropped strokes (they now sit at the end).
+            let count = canvas.drawing.strokes.count
+            let indices = IndexSet(integersIn: (count - translated.count)..<count)
+            parent.onInkSelection?(indices, StrokeEdit.bounds(of: indices, in: canvas.drawing))
+        }
+
+        /// Teardown points (close, background, peer flush request) must put
+        /// the lifted strokes back where they were — NOT the 2s autosave,
+        /// which can fire mid-drag and would break the drop.
+        func restoreDraggedStrokes() {
+            guard let strokes = draggedStrokes else { return }
+            draggedStrokes = nil
+            applyLocalEdit { PKDrawing(strokes: $0.strokes + strokes) }
         }
 
         /// Peer stroke deltas waiting to be applied in one batch.
