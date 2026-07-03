@@ -242,6 +242,18 @@ struct CanvasView: UIViewRepresentable {
             longPress.delegate = self
             canvas.addGestureRecognizer(longPress)
             blockPressRecognizer = longPress
+
+            #if !targetEnvironment(macCatalyst)
+            // A plain finger TAP on a block opens it for interaction (drag,
+            // resize, edit) — no menu, no hold. Gated (shouldReceive) to
+            // touches over a block, so taps on paper/ink still summon
+            // PencilKit's edit menu. Not on Mac: a mouse click is a pen dot.
+            let tap = UITapGestureRecognizer(target: self, action: #selector(handleBlockTap(_:)))
+            tap.allowedTouchTypes = [NSNumber(value: UITouch.TouchType.direct.rawValue)]
+            tap.delegate = self
+            canvas.addGestureRecognizer(tap)
+            blockTapRecognizer = tap
+            #endif
         }
 
         #if !targetEnvironment(macCatalyst)
@@ -447,6 +459,20 @@ struct CanvasView: UIViewRepresentable {
         /// gets gated (iPad) to touches over a text block.
         weak var blockPressRecognizer: UILongPressGestureRecognizer?
 
+        #if !targetEnvironment(macCatalyst)
+        /// The tap-a-block-to-edit recognizer, gated the same way.
+        weak var blockTapRecognizer: UITapGestureRecognizer?
+
+        @objc private func handleBlockTap(_ g: UITapGestureRecognizer) {
+            guard g.state == .ended, let view = g.view else { return }
+            let raw = g.location(in: view)
+            let scale = canvas?.zoomScale ?? 1
+            let point = CGPoint(x: raw.x / scale, y: raw.y / scale)
+            guard parent.blockAt?(point) != nil else { return }
+            parent.onLongPress?(point) // opens the block: focus + controls
+        }
+        #endif
+
         /// Press-and-drag state: the block grabbed at `.began`, the anchor to
         /// tell a grab-and-drag from a press-in-place, and the last point for
         /// incremental move deltas.
@@ -531,12 +557,13 @@ extension CanvasView.Coordinator: UIGestureRecognizerDelegate {
     }
 
     #if !targetEnvironment(macCatalyst)
-    /// The block-grab press takes ONLY touches that land on a text block.
-    /// Everything else falls through untouched, so PencilKit's own edit menu
-    /// (Select All / Insert Space / stroke selection) works on empty paper
-    /// and on ink.
+    /// The block tap and block grab take ONLY touches that land on a text
+    /// block. Everything else falls through untouched, so PencilKit's own
+    /// edit menu (Select All / Insert Space / stroke selection) works on
+    /// empty paper and on ink.
     func gestureRecognizer(_ g: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
-        guard g === blockPressRecognizer, let view = g.view else { return true }
+        guard g === blockPressRecognizer || g === blockTapRecognizer,
+              let view = g.view else { return true }
         let raw = touch.location(in: view)
         let scale = (view as? UIScrollView)?.zoomScale ?? 1
         let point = CGPoint(x: raw.x / scale, y: raw.y / scale)
@@ -562,28 +589,26 @@ final class GrowingCanvasView: PKCanvasView {
     }
 
     #if !targetEnvironment(macCatalyst)
-    /// Called with the menu's press point in content coordinates.
+    /// Called with the menu's tap point in content coordinates.
     var onInsertTextBlock: ((CGPoint) -> Void)?
     /// Last touch in view coordinates, tracked passively — the edit menu
     /// doesn't hand its anchor point to responder-chain actions.
     var lastTouchPoint: CGPoint = .zero
 
-    @objc private func insertTextBlock(_ sender: Any?) {
-        onInsertTextBlock?(CGPoint(x: lastTouchPoint.x / zoomScale,
-                                   y: lastTouchPoint.y / zoomScale))
-    }
-
-    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
-        if action == #selector(insertTextBlock(_:)) { return onInsertTextBlock != nil }
-        return super.canPerformAction(action, withSender: sender)
-    }
-
+    /// Joins the tap edit menu ("Select All | Insert Space") with an icon-only
+    /// A| action that adds a text block at the tap. A UIAction carries its own
+    /// handler — no responder-chain canPerformAction dance for the builder to
+    /// reject.
     override func buildMenu(with builder: UIMenuBuilder) {
         super.buildMenu(with: builder)
         guard builder.system == .context, onInsertTextBlock != nil else { return }
-        let insert = UICommand(title: "Insert Text Block",
-                               action: #selector(insertTextBlock(_:)))
-        builder.insertChild(UIMenu(options: .displayInline, children: [insert]),
+        let add = UIAction(title: "",
+                           image: UIImage(systemName: "character.cursor.ibeam")) { [weak self] _ in
+            guard let self else { return }
+            self.onInsertTextBlock?(CGPoint(x: self.lastTouchPoint.x / self.zoomScale,
+                                            y: self.lastTouchPoint.y / self.zoomScale))
+        }
+        builder.insertChild(UIMenu(options: .displayInline, children: [add]),
                             atEndOfMenu: .root)
     }
     #endif
