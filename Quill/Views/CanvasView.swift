@@ -43,6 +43,9 @@ struct CanvasView: UIViewRepresentable {
     /// iPad: live finger drag of a grabbed block. Incremental content-coord
     /// delta per event; `finished` fires once on release.
     var onBlockMove: ((UUID, CGSize, Bool) -> Void)?
+    /// iPad: a finger tapped ink — these strokes (and their box, content
+    /// coordinates) become the selection.
+    var onInkSelection: ((IndexSet, CGRect) -> Void)?
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -78,6 +81,12 @@ struct CanvasView: UIViewRepresentable {
 
         #if !targetEnvironment(macCatalyst)
         canvas.onInsertTextBlock = onLongPress
+        let blockAt = blockAt
+        canvas.menuSuppressed = { [weak canvas] point in
+            if blockAt?(point) != nil { return true }
+            guard let canvas else { return false }
+            return !StrokeEdit.strokes(in: canvas.drawing, near: point).isEmpty
+        }
         #endif
 
         // Re-derive the page size on every layout pass: first appearance
@@ -225,6 +234,13 @@ struct CanvasView: UIViewRepresentable {
             // in a window yet (palette never appeared). The Mac uses its own
             // MacToolStrip instead.
             attachToolPickerWhenReady(canvas)
+
+            // Put the A| action into PencilKit's tap edit menu. Retried like
+            // the tool picker — the menu machinery attaches lazily.
+            if let growing = canvas as? GrowingCanvasView {
+                EditMenuAugment.activeCanvas = growing
+                augmentEditMenuWhenReady(growing)
+            }
             #endif
 
             // Press-and-hold on a TEXT BLOCK grabs it (drag to move, release
@@ -274,6 +290,18 @@ struct CanvasView: UIViewRepresentable {
         }
         #endif
 
+        #if !targetEnvironment(macCatalyst)
+        private func augmentEditMenuWhenReady(_ canvas: GrowingCanvasView, attempt: Int = 0) {
+            guard attempt < 12 else { return } // ~6s, then live with the stock menu
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak canvas] in
+                guard let canvas else { return }
+                if !EditMenuAugment.install(on: canvas) {
+                    self.augmentEditMenuWhenReady(canvas, attempt: attempt + 1)
+                }
+            }
+        }
+        #endif
+
         func detachToolPicker(from canvas: PKCanvasView) {
             #if !targetEnvironment(macCatalyst)
             let picker = Self.sharedToolPicker
@@ -305,9 +333,35 @@ struct CanvasView: UIViewRepresentable {
             case .flush:
                 flushSave()
 
+            case let .transformStrokes(indices, dx, dy):
+                applyLocalEdit { StrokeEdit.translate($0, indices: indices, dx: dx, dy: dy) }
+
+            case let .deleteStrokes(indices):
+                applyLocalEdit { StrokeEdit.delete($0, indices: indices) }
+
+            case let .duplicateStrokes(indices):
+                applyLocalEdit { StrokeEdit.duplicate($0, indices: indices) }
+
             case .setPaper, .setTexts:
                 break // paper + text blocks render outside the canvas; the detail view handles them
             }
+        }
+
+        /// A whole-drawing edit from the selection overlay (move / delete /
+        /// duplicate). Applied without the auto-broadcast (none of these are
+        /// append deltas), then persisted and shipped as a full resync.
+        private func applyLocalEdit(_ edit: (PKDrawing) -> PKDrawing) {
+            guard let canvas else { return }
+            applyPendingDeltas() // fold in buffered peer strokes first
+            let edited = edit(canvas.drawing)
+            isApplyingRemote = true
+            canvas.drawing = edited
+            isApplyingRemote = false
+            lastSyncedCount = edited.strokes.count
+            refreshInkBottom(canvas)
+            dirty = true
+            saveSubject.send(())
+            resyncSubject.send(())
         }
 
         /// Peer stroke deltas waiting to be applied in one batch.
@@ -468,8 +522,16 @@ struct CanvasView: UIViewRepresentable {
             let raw = g.location(in: view)
             let scale = canvas?.zoomScale ?? 1
             let point = CGPoint(x: raw.x / scale, y: raw.y / scale)
-            guard parent.blockAt?(point) != nil else { return }
-            parent.onLongPress?(point) // opens the block: focus + controls
+            if parent.blockAt?(point) != nil {
+                parent.onLongPress?(point) // opens the block: focus + controls
+                return
+            }
+            // Ink: select the strokes under the finger (PencilKit has no
+            // public selection, so Quill provides its own).
+            guard let canvas else { return }
+            let hits = StrokeEdit.strokes(in: canvas.drawing, near: point)
+            guard !hits.isEmpty else { return }
+            parent.onInkSelection?(hits, StrokeEdit.bounds(of: hits, in: canvas.drawing))
         }
         #endif
 
@@ -557,17 +619,24 @@ extension CanvasView.Coordinator: UIGestureRecognizerDelegate {
     }
 
     #if !targetEnvironment(macCatalyst)
-    /// The block tap and block grab take ONLY touches that land on a text
-    /// block. Everything else falls through untouched, so PencilKit's own
-    /// edit menu (Select All / Insert Space / stroke selection) works on
-    /// empty paper and on ink.
+    /// The block grab takes ONLY touches on a text block; the tap takes
+    /// touches on a block OR on ink (stroke selection). Touches on empty
+    /// paper always fall through, so PencilKit's own edit menu (Select All /
+    /// Insert Space) keeps appearing there.
     func gestureRecognizer(_ g: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
-        guard g === blockPressRecognizer || g === blockTapRecognizer,
-              let view = g.view else { return true }
+        guard let view = g.view else { return true }
         let raw = touch.location(in: view)
         let scale = (view as? UIScrollView)?.zoomScale ?? 1
         let point = CGPoint(x: raw.x / scale, y: raw.y / scale)
-        return parent.blockAt?(point) != nil
+        if g === blockPressRecognizer {
+            return parent.blockAt?(point) != nil
+        }
+        if g === blockTapRecognizer {
+            if parent.blockAt?(point) != nil { return true }
+            guard let drawing = (view as? PKCanvasView)?.drawing else { return false }
+            return !StrokeEdit.strokes(in: drawing, near: point).isEmpty
+        }
+        return true
     }
     #endif
 }
@@ -589,28 +658,18 @@ final class GrowingCanvasView: PKCanvasView {
     }
 
     #if !targetEnvironment(macCatalyst)
-    /// Called with the menu's tap point in content coordinates.
+    /// Called with the menu's tap point in content coordinates. Reached from
+    /// the A| action `EditMenuAugment` adds to PencilKit's tap edit menu
+    /// (the menu-builder route was verified dead on device — PencilKit's
+    /// edit menu bypasses UIMenuSystem).
     var onInsertTextBlock: ((CGPoint) -> Void)?
+    /// True when the tapped content point sits on an object (text block or
+    /// ink) — the system edit bar is suppressed there; objects get direct
+    /// interaction instead.
+    var menuSuppressed: ((CGPoint) -> Bool)?
     /// Last touch in view coordinates, tracked passively — the edit menu
-    /// doesn't hand its anchor point to responder-chain actions.
+    /// doesn't hand its anchor point to the augmented action.
     var lastTouchPoint: CGPoint = .zero
-
-    /// Joins the tap edit menu ("Select All | Insert Space") with an icon-only
-    /// A| action that adds a text block at the tap. A UIAction carries its own
-    /// handler — no responder-chain canPerformAction dance for the builder to
-    /// reject.
-    override func buildMenu(with builder: UIMenuBuilder) {
-        super.buildMenu(with: builder)
-        guard builder.system == .context, onInsertTextBlock != nil else { return }
-        let add = UIAction(title: "",
-                           image: UIImage(systemName: "character.cursor.ibeam")) { [weak self] _ in
-            guard let self else { return }
-            self.onInsertTextBlock?(CGPoint(x: self.lastTouchPoint.x / self.zoomScale,
-                                            y: self.lastTouchPoint.y / self.zoomScale))
-        }
-        builder.insertChild(UIMenu(options: .displayInline, children: [add]),
-                            atEndOfMenu: .root)
-    }
     #endif
 }
 

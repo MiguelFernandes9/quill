@@ -22,6 +22,16 @@ enum CanvasCommand {
     case setPaper(PaperStyle)
     /// The pad's text blocks changed remotely (whole-array replace).
     case setTexts([TextBlock])
+
+    // Local commands: the stroke-selection overlay edits ink through the
+    // same relay (these never arrive from a peer — the results sync as a
+    // whole-drawing resync).
+    /// Move the selected strokes by (dx, dy).
+    case transformStrokes(IndexSet, dx: CGFloat, dy: CGFloat)
+    /// Remove the selected strokes.
+    case deleteStrokes(IndexSet)
+    /// Append offset copies of the selected strokes.
+    case duplicateStrokes(IndexSet)
 }
 
 /// Owns the `MultipeerSession`, encodes/decodes `SyncMessage`, and bridges the

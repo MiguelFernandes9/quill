@@ -8,6 +8,14 @@ import SwiftUI
 /// the focused block shows a floating control strip ABOVE it — drag to move,
 /// A−/A+ to resize, trash to delete. The strip is an overlay, so the block
 /// itself never shifts when it appears.
+/// Collects every block's rendered rect (content coordinates).
+struct BlockFramesKey: PreferenceKey {
+    static var defaultValue: [UUID: CGRect] = [:]
+    static func reduce(value: inout [UUID: CGRect], nextValue: () -> [UUID: CGRect]) {
+        value.merge(nextValue()) { $1 }
+    }
+}
+
 struct TextBlockLayer: View {
     @Binding var texts: [TextBlock]
     let editing: Bool
@@ -23,6 +31,9 @@ struct TextBlockLayer: View {
     /// iPad long-press: focus the block at `point` (content coordinates) or
     /// create one there. `id` increments per request.
     var focusRequest: (id: Int, point: CGPoint)?
+    /// Reports every block's ACTUAL rendered rect (content coordinates) —
+    /// the canvas-side hit-tests need real frames, not estimates.
+    var onFrames: (([UUID: CGRect]) -> Void)? = nil
     var onChanged: () -> Void
 
     @FocusState private var focused: UUID?
@@ -72,6 +83,7 @@ struct TextBlockLayer: View {
         // ZStack — every block visually jumps on tool switch.
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .coordinateSpace(name: "textLayer") // stable space for drag deltas
+        .onPreferenceChange(BlockFramesKey.self) { onFrames?($0) }
         .allowsHitTesting(editing)
         .onChange(of: focused) { old, value in
             hasFocusedBlock = value != nil
@@ -173,6 +185,16 @@ struct TextBlockLayer: View {
                     .offset(y: stripOffset)
             }
         }
+        .background(
+            // Blocks are placed via .offset, which never moves GEOMETRY — the
+            // real rect is the model origin plus the measured size.
+            GeometryReader { geo in
+                Color.clear.preference(key: BlockFramesKey.self,
+                                       value: [value.id: CGRect(x: value.x, y: value.y,
+                                                                width: geo.size.width,
+                                                                height: geo.size.height)])
+            }
+        )
         .offset(x: value.x + (isDragging ? dragOffset.width : 0),
                 y: value.y + (isDragging ? dragOffset.height : 0))
     }
