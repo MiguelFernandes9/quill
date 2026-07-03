@@ -139,6 +139,11 @@ struct SketchDetailView: View {
                         if editingTexts { deselectSignal += 1 } // ink takes over
                         strokeSelection = StrokeSelection(indices: indices, rect: rect)
                     },
+                    onDragImage: { image, rect in
+                        guard strokeSelection != nil else { return }
+                        strokeSelection?.dragImage = image
+                        strokeSelection?.rect = rect
+                    },
                     textActive: { editingTexts },
                     onEmptyTap: { deselectSignal += 1 }
                 )
@@ -196,6 +201,13 @@ struct SketchDetailView: View {
         // recreates the field and refocuses on the next runloop, and that
         // blink must not tear the mode down.
         .onChange(of: hasFocusedBlock) { _, focusedNow in
+            #if !targetEnvironment(macCatalyst)
+            if focusedNow {
+                // Text-input menu machinery attaches lazily on focus — sweep
+                // it now so the Cut/Copy bar stays away from blocks.
+                EditMenuAugment.suppressTextMenusSoon()
+            }
+            #endif
             guard !focusedNow, editingTexts else { return }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                 if !hasFocusedBlock && editingTexts { editingTexts = false }
