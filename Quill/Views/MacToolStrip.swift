@@ -2,14 +2,13 @@
 import SwiftUI
 import PencilKit
 
-/// Mac tool switcher (mock 4a): a segmented control of five icon tools —
-/// Pen, Marker, Pencil, Eraser, and **Text** — plus ink colors and a width
-/// slider. Text is a tool, not a mode: selecting it drives `textActive`
-/// (the old `editingTexts`), and leaving text mode from outside (Esc) snaps
-/// the switcher back to Pen. Selection persists across launches.
+/// Mac tool switcher (mock 4a): a segmented control of four icon tools —
+/// Pen, Marker, Pencil, Eraser — plus ink colors and a width slider. Text is
+/// no longer a tool: click-and-hold on the canvas inserts a block where the
+/// mouse is (matching the iPad's press), so drawing tools stay live and the
+/// canvas keeps scrolling. Selection persists across launches.
 struct MacToolStrip: View {
     @Binding var tool: PKTool
-    @Binding var textActive: Bool
 
     @AppStorage("macTool") private var toolName = "pen"
     @AppStorage("macColor") private var colorName = "black"
@@ -32,27 +31,18 @@ struct MacToolStrip: View {
             }
 
             colorSquares
-                .opacity(textActive ? 0.35 : 1)
-                .disabled(textActive)
-                .animation(.easeInOut(duration: 0.15), value: textActive)
 
             Slider(value: $width, in: 1...24, step: 1) { editing in
                 if !editing { apply() }
             }
             .tint(Color(uiColor: selectedUIColor))
             .frame(width: 130)
-            .opacity(textActive ? 0.35 : 1)
-            .disabled(textActive)
-            .animation(.easeInOut(duration: 0.15), value: textActive)
         }
-        .onAppear { apply() }
-        .onChange(of: textActive) { _, active in
-            // Esc (or any outside exit) while the Text tool is selected snaps
-            // the switcher back to Pen.
-            if !active && toolName == "text" {
-                toolName = "pen"
-                apply()
-            }
+        .onAppear {
+            // Migration: "text" was a persisted tool before it became the
+            // click-and-hold gesture.
+            if toolName == "text" { toolName = "pen" }
+            apply()
         }
     }
 
@@ -64,7 +54,6 @@ struct MacToolStrip: View {
                 segment(icon: ink.icon, name: ink.name, help: ink.help)
             }
             segment(icon: "eraser", name: "eraser", help: "Eraser")
-            segment(icon: "character.cursor.ibeam", name: "text", help: "Text")
         }
         .padding(2)
         .background(QuillTheme.hairlineInner, in: RoundedRectangle(cornerRadius: 8))
@@ -72,19 +61,18 @@ struct MacToolStrip: View {
 
     private func segment(icon: String, name: String, help: String) -> some View {
         let selected = toolName == name
-        let isText = name == "text"
         return Button {
             toolName = name
             apply()
         } label: {
             Image(systemName: icon)
                 .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(selected && isText ? .white : QuillTheme.ink)
+                .foregroundStyle(QuillTheme.ink)
                 .frame(width: 42, height: 32)
                 .background(
                     RoundedRectangle(cornerRadius: 6)
-                        .fill(selected ? (isText ? QuillTheme.accent : QuillTheme.surface) : .clear)
-                        .shadow(color: selected && !isText ? .black.opacity(0.12) : .clear,
+                        .fill(selected ? QuillTheme.surface : .clear)
+                        .shadow(color: selected ? .black.opacity(0.12) : .clear,
                                 radius: 1.5, y: 0.5)
                 )
                 .contentShape(Rectangle())
@@ -132,8 +120,8 @@ struct MacToolStrip: View {
             ForEach(QuillTheme.inkPalette, id: \.name) { entry in
                 Button {
                     colorName = entry.name
-                    // Picking a color while Eraser/Text is active implies inking.
-                    if toolName == "eraser" || toolName == "text" { toolName = "pen" }
+                    // Picking a color while the Eraser is active implies inking.
+                    if toolName == "eraser" { toolName = "pen" }
                     apply()
                 } label: {
                     RoundedRectangle(cornerRadius: 5)
@@ -159,12 +147,11 @@ struct MacToolStrip: View {
     }
 
     private func apply() {
-        textActive = toolName == "text"
         if toolName == "eraser" {
             tool = eraserMode == "bitmap"
                 ? PKEraserTool(.bitmap, width: max(width * 3, 12))
                 : PKEraserTool(.vector)
-        } else if toolName != "text" {
+        } else {
             let ink = Self.inks.first { $0.name == toolName }?.ink ?? .pen
             tool = PKInkingTool(ink, color: selectedUIColor, width: width)
         }

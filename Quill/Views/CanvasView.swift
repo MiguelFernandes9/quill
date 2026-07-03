@@ -225,21 +225,23 @@ struct CanvasView: UIViewRepresentable {
             // in a window yet (palette never appeared). The Mac uses its own
             // MacToolStrip instead.
             attachToolPickerWhenReady(canvas)
+            #endif
 
-            // Finger long-press on a TEXT BLOCK grabs it (drag to move,
-            // release in place to edit). It receives ONLY touches over a
-            // block (see shouldReceive) — presses on empty paper or ink fall
-            // through to PencilKit's own edit-menu machinery (Select All /
-            // Insert Space / stroke selection), where "Insert Text Block" is
-            // injected via buildMenu.
+            // Press-and-hold on a TEXT BLOCK grabs it (drag to move, release
+            // in place to edit). iPad: finger-only, and gated (shouldReceive)
+            // to touches over a block so presses on paper or ink fall through
+            // to PencilKit's edit menu, which gains "Insert Text Block" via
+            // buildMenu. Mac: click-and-hold, ungated — holding empty paper
+            // creates a block right there (no system menu exists to join).
             let longPress = UILongPressGestureRecognizer(target: self,
                                                          action: #selector(handleLongPress(_:)))
             longPress.minimumPressDuration = 0.5
+            #if !targetEnvironment(macCatalyst)
             longPress.allowedTouchTypes = [NSNumber(value: UITouch.TouchType.direct.rawValue)]
+            #endif
             longPress.delegate = self
             canvas.addGestureRecognizer(longPress)
             blockPressRecognizer = longPress
-            #endif
         }
 
         #if !targetEnvironment(macCatalyst)
@@ -441,9 +443,8 @@ struct CanvasView: UIViewRepresentable {
             reportTransform(scrollView)
         }
 
-        #if !targetEnvironment(macCatalyst)
         /// The block-grab long-press; identified in the delegate so ONLY it
-        /// gets gated to touches over a text block.
+        /// gets gated (iPad) to touches over a text block.
         weak var blockPressRecognizer: UILongPressGestureRecognizer?
 
         /// Press-and-drag state: the block grabbed at `.began`, the anchor to
@@ -454,9 +455,10 @@ struct CanvasView: UIViewRepresentable {
         private var lastPressPoint: CGPoint = .zero
         private var pressMoved = false
 
-        /// Hold a block and drag → move it with the finger; hold and release
-        /// in place → edit it. Touches not over a block never reach this
-        /// (shouldReceive), so PencilKit keeps its native press behavior.
+        /// Hold a block and drag → move it; hold and release in place →
+        /// edit it. On iPad, touches not over a block never reach this
+        /// (shouldReceive) so PencilKit keeps its native press behavior; on
+        /// the Mac, holding empty paper creates a block at the pointer.
         @objc private func handleLongPress(_ g: UILongPressGestureRecognizer) {
             guard let view = g.view else { return }
             let raw = g.location(in: view)
@@ -472,6 +474,11 @@ struct CanvasView: UIViewRepresentable {
                 if pressedBlockID != nil {
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 }
+                #if targetEnvironment(macCatalyst)
+                if pressedBlockID == nil {
+                    parent.onLongPress?(point) // click-hold empty → new block
+                }
+                #endif
 
             case .changed:
                 guard let id = pressedBlockID else { return }
@@ -496,7 +503,6 @@ struct CanvasView: UIViewRepresentable {
                 break
             }
         }
-        #endif
 
         // MARK: Cursor
 
