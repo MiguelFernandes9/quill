@@ -104,7 +104,8 @@ struct SketchDetailView: View {
                         canvasOffset = offset
                     },
                     onLongPress: { point in
-                        // iPad: long-press IS the text tool — no bar button.
+                        // Press-and-hold IS the text tool on both platforms —
+                        // no bar button. Focuses the block there or plants one.
                         editingTexts = true
                         focusBlockRequest = (id: (focusBlockRequest?.id ?? 0) + 1,
                                              point: point)
@@ -159,18 +160,17 @@ struct SketchDetailView: View {
         .onChange(of: editingTexts) { _, editing in
             if !editing { commitTexts() }
         }
-        #if !targetEnvironment(macCatalyst)
-        // iPad text mode is transient: it lives while a block is focused and
-        // folds up when focus ends (tap on empty paper). Checked after a
-        // beat — A± recreates the field and refocuses on the next runloop,
-        // and that blink must not tear the mode down.
+        // Text mode is transient on BOTH platforms: it lives while a block is
+        // focused and folds up when focus ends (click/tap on empty paper), so
+        // it can never pin the canvas frozen. Checked after a beat — A±
+        // recreates the field and refocuses on the next runloop, and that
+        // blink must not tear the mode down.
         .onChange(of: hasFocusedBlock) { _, focusedNow in
             guard !focusedNow, editingTexts else { return }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                 if !hasFocusedBlock && editingTexts { editingTexts = false }
             }
         }
-        #endif
         .onReceive(connectivity.canvasCommands) { id, command in
             guard id == sketch.id else { return }
             switch command {
@@ -340,7 +340,7 @@ struct SketchDetailView: View {
 
             QuillTheme.hairline.frame(width: 1, height: 24)
 
-            MacToolStrip(tool: $macTool, textActive: $editingTexts)
+            MacToolStrip(tool: $macTool)
 
             Spacer(minLength: 12)
 
@@ -357,13 +357,13 @@ struct SketchDetailView: View {
         .background(QuillTheme.background)
     }
 
-    /// Esc chain: deselect a focused block → exit the Text tool → go back.
+    /// Esc chain: deselect a focused block → exit text editing → go back.
     private var escHandler: some View {
         Button("") {
             if hasFocusedBlock {
                 deselectSignal += 1
             } else if editingTexts {
-                editingTexts = false // snaps MacToolStrip back to Pen; commits via onChange
+                editingTexts = false // commits via onChange
             } else {
                 dismiss()
             }
