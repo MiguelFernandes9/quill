@@ -76,6 +76,10 @@ struct CanvasView: UIViewRepresentable {
         context.coordinator.attach(to: canvas)
         context.coordinator.refreshInkBottom(canvas)
 
+        #if !targetEnvironment(macCatalyst)
+        canvas.onInsertTextBlock = onLongPress
+        #endif
+
         // Re-derive the page size on every layout pass: first appearance
         // (bounds are zero in here), rotation, window resize, and every
         // zoom/scroll frame (the target contentSize tracks zoomScale).
@@ -176,11 +180,15 @@ struct CanvasView: UIViewRepresentable {
             canvas.addGestureRecognizer(hover)
 
             // Cursor while drawing: passive observer, never steals a stroke.
+            // Doubles as the edit menu's anchor tracker on iPad.
             let observer = TouchObserver()
             observer.cancelsTouchesInView = false
             observer.delegate = self
-            observer.onTouch = { [weak self] point, down in
+            observer.onTouch = { [weak self, weak canvas] point, down in
                 self?.reportCursor(point, down: down)
+                #if !targetEnvironment(macCatalyst)
+                if down { (canvas as? GrowingCanvasView)?.lastTouchPoint = point }
+                #endif
             }
             canvas.addGestureRecognizer(observer)
 
@@ -218,15 +226,19 @@ struct CanvasView: UIViewRepresentable {
             // MacToolStrip instead.
             attachToolPickerWhenReady(canvas)
 
-            // Finger long-press opens text editing at that spot. Finger-only:
-            // the Pencil must never trigger it mid-stroke, and a stationary
-            // press doesn't collide with the scroll view's pan (needs motion).
+            // Finger long-press on a TEXT BLOCK grabs it (drag to move,
+            // release in place to edit). It receives ONLY touches over a
+            // block (see shouldReceive) — presses on empty paper or ink fall
+            // through to PencilKit's own edit-menu machinery (Select All /
+            // Insert Space / stroke selection), where "Insert Text Block" is
+            // injected via buildMenu.
             let longPress = UILongPressGestureRecognizer(target: self,
                                                          action: #selector(handleLongPress(_:)))
             longPress.minimumPressDuration = 0.5
             longPress.allowedTouchTypes = [NSNumber(value: UITouch.TouchType.direct.rawValue)]
             longPress.delegate = self
             canvas.addGestureRecognizer(longPress)
+            blockPressRecognizer = longPress
             #endif
         }
 
@@ -430,6 +442,10 @@ struct CanvasView: UIViewRepresentable {
         }
 
         #if !targetEnvironment(macCatalyst)
+        /// The block-grab long-press; identified in the delegate so ONLY it
+        /// gets gated to touches over a text block.
+        weak var blockPressRecognizer: UILongPressGestureRecognizer?
+
         /// Press-and-drag state: the block grabbed at `.began`, the anchor to
         /// tell a grab-and-drag from a press-in-place, and the last point for
         /// incremental move deltas.
@@ -438,10 +454,9 @@ struct CanvasView: UIViewRepresentable {
         private var lastPressPoint: CGPoint = .zero
         private var pressMoved = false
 
-        /// One gesture, three outcomes: hold empty paper → new text block;
-        /// hold a block and drag → move it with the finger; hold a block and
-        /// release in place → edit it. (A long-press keeps tracking after
-        /// `.began` — `allowableMovement` only gates recognition.)
+        /// Hold a block and drag → move it with the finger; hold and release
+        /// in place → edit it. Touches not over a block never reach this
+        /// (shouldReceive), so PencilKit keeps its native press behavior.
         @objc private func handleLongPress(_ g: UILongPressGestureRecognizer) {
             guard let view = g.view else { return }
             let raw = g.location(in: view)
@@ -450,13 +465,12 @@ struct CanvasView: UIViewRepresentable {
 
             switch g.state {
             case .began:
-                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 pressAnchor = point
                 lastPressPoint = point
                 pressMoved = false
                 pressedBlockID = parent.blockAt?(point)
-                if pressedBlockID == nil {
-                    parent.onLongPress?(point) // empty paper → new block
+                if pressedBlockID != nil {
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 }
 
             case .changed:
@@ -509,11 +523,30 @@ extension CanvasView.Coordinator: UIGestureRecognizerDelegate {
                            shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
         true
     }
+
+    #if !targetEnvironment(macCatalyst)
+    /// The block-grab press takes ONLY touches that land on a text block.
+    /// Everything else falls through untouched, so PencilKit's own edit menu
+    /// (Select All / Insert Space / stroke selection) works on empty paper
+    /// and on ink.
+    func gestureRecognizer(_ g: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        guard g === blockPressRecognizer, let view = g.view else { return true }
+        let raw = touch.location(in: view)
+        let scale = (view as? UIScrollView)?.zoomScale ?? 1
+        let point = CGPoint(x: raw.x / scale, y: raw.y / scale)
+        return parent.blockAt?(point) != nil
+    }
+    #endif
 }
 
 /// `PKCanvasView` with a layout hook: `UIScrollViewDelegate` has no layout
 /// callback, but the growing page must be re-derived on first layout (bounds
 /// are zero during make), rotation, window resize, and every zoom frame.
+///
+/// On iPad it also injects **Insert Text Block** into the system edit menu
+/// PencilKit shows on a finger press (next to Select All / Insert Space) —
+/// PencilKit exposes no menu API, so the action rides the responder-chain
+/// menu builder instead.
 final class GrowingCanvasView: PKCanvasView {
     var onLayout: (() -> Void)?
 
@@ -521,6 +554,33 @@ final class GrowingCanvasView: PKCanvasView {
         super.layoutSubviews()
         onLayout?()
     }
+
+    #if !targetEnvironment(macCatalyst)
+    /// Called with the menu's press point in content coordinates.
+    var onInsertTextBlock: ((CGPoint) -> Void)?
+    /// Last touch in view coordinates, tracked passively — the edit menu
+    /// doesn't hand its anchor point to responder-chain actions.
+    var lastTouchPoint: CGPoint = .zero
+
+    @objc private func insertTextBlock(_ sender: Any?) {
+        onInsertTextBlock?(CGPoint(x: lastTouchPoint.x / zoomScale,
+                                   y: lastTouchPoint.y / zoomScale))
+    }
+
+    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+        if action == #selector(insertTextBlock(_:)) { return onInsertTextBlock != nil }
+        return super.canPerformAction(action, withSender: sender)
+    }
+
+    override func buildMenu(with builder: UIMenuBuilder) {
+        super.buildMenu(with: builder)
+        guard builder.system == .context, onInsertTextBlock != nil else { return }
+        let insert = UICommand(title: "Insert Text Block",
+                               action: #selector(insertTextBlock(_:)))
+        builder.insertChild(UIMenu(options: .displayInline, children: [insert]),
+                            atEndOfMenu: .root)
+    }
+    #endif
 }
 
 /// A gesture recognizer that only *observes* touches — it stays in `.possible`
