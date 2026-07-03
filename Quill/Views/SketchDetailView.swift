@@ -33,6 +33,11 @@ struct SketchDetailView: View {
     @State private var deselectSignal = 0
     /// iPad long-press: ask the text layer to focus/create a block here.
     @State private var focusBlockRequest: (id: Int, point: CGPoint)?
+    /// iPad: strokes selected by a finger tap on ink.
+    @State private var strokeSelection: StrokeSelection?
+    /// Actual rendered block rects (content coordinates) — exact hit targets
+    /// for finger presses; the text-based estimate is only a fallback.
+    @State private var blockFrames: [UUID: CGRect] = [:]
 
     var body: some View {
         #if targetEnvironment(macCatalyst)
@@ -98,7 +103,12 @@ struct SketchDetailView: View {
                     },
                     onStrokeDelta: { delta in connectivity.sendStrokes(delta) },
                     onDrawingResync: { data in connectivity.sendDrawing(data) },
-                    onCursor: { point, down in connectivity.sendCursor(point, down: down) },
+                    onCursor: { point, down in
+                        // Any fresh canvas touch (pen stroke, tap elsewhere)
+                        // dismisses the ink selection.
+                        if down, strokeSelection != nil { strokeSelection = nil }
+                        connectivity.sendCursor(point, down: down)
+                    },
                     onTransform: { scale, offset in
                         canvasScale = scale
                         canvasOffset = offset
@@ -111,7 +121,11 @@ struct SketchDetailView: View {
                                              point: point)
                     },
                     blockAt: { point in
-                        texts.last(where: { $0.approxRect.contains(point) })?.id
+                        texts.last(where: { block in
+                            let rect = blockFrames[block.id]?.insetBy(dx: -8, dy: -8)
+                                ?? block.approxRect
+                            return rect.contains(point)
+                        })?.id
                     },
                     onBlockMove: { id, delta, finished in
                         guard let index = texts.firstIndex(where: { $0.id == id })
@@ -119,6 +133,9 @@ struct SketchDetailView: View {
                         texts[index].x += delta.width
                         texts[index].y += delta.height
                         if finished { commitTexts() }
+                    },
+                    onInkSelection: { indices, rect in
+                        strokeSelection = StrokeSelection(indices: indices, rect: rect)
                     }
                 )
                 .ignoresSafeArea(edges: .bottom)
@@ -130,8 +147,12 @@ struct SketchDetailView: View {
                                visibleRect: visibleContentRect(viewportSize),
                                hasFocusedBlock: $hasFocusedBlock,
                                deselectSignal: deselectSignal,
-                               focusRequest: focusBlockRequest) {
+                               focusRequest: focusBlockRequest,
+                               onFrames: { blockFrames = $0 }) {
                     commitTexts()
+                }
+                StrokeSelectionOverlay(selection: $strokeSelection) { command in
+                    commandRelay.send(command)
                 }
                 RemoteCursorLayer()
             }
@@ -176,6 +197,9 @@ struct SketchDetailView: View {
             switch command {
             case let .setPaper(style): paper = style
             case let .setTexts(remote): texts = remote
+            case .reloadDrawing:
+                // Whole-drawing replace invalidates selection indices.
+                strokeSelection = nil
             default: break
             }
             commandRelay.send(command)
