@@ -150,15 +150,15 @@ struct TextBlockLayer: View {
         .background(
             RoundedRectangle(cornerRadius: blockRadius)
                 .fill(Color.white.opacity(isFocused ? 0.85 : 0.72))
-                .opacity(editing || !value.text.isEmpty ? 1 : 0)
+                .opacity((editing && isFocused) || !value.text.isEmpty ? 1 : 0)
         )
+        // Only the PRESSED block shows its border — text mode is entered
+        // per-object now, so lighting up every block's box on one press
+        // read as a bug (it was the old Text-tool's "reveal all" look).
         .overlay(
             RoundedRectangle(cornerRadius: blockRadius)
-                .stroke(isFocused ? QuillTheme.accent : QuillTheme.dashedBlock,
-                        style: isFocused
-                            ? StrokeStyle(lineWidth: 1.5)
-                            : StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                .opacity(editing ? 1 : 0)
+                .stroke(QuillTheme.accent, style: StrokeStyle(lineWidth: 1.5))
+                .opacity(editing && isFocused ? 1 : 0)
         )
         // Focus tap covers the block body ONLY — attached BEFORE the strip
         // overlay, or the parent gesture swallows the strip's buttons
