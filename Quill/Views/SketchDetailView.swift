@@ -31,8 +31,9 @@ struct SketchDetailView: View {
     /// Text-block focus (drives Esc: deselect first, then go back).
     @State private var hasFocusedBlock = false
     @State private var deselectSignal = 0
-    /// iPad long-press: ask the text layer to focus/create a block here.
-    @State private var focusBlockRequest: (id: Int, point: CGPoint)?
+    /// Ask the text layer to select the block (resolved HERE, with real
+    /// frames) or create one at the point.
+    @State private var focusBlockRequest: (id: Int, point: CGPoint, blockID: UUID?)?
     /// iPad: strokes selected by a finger tap on ink.
     @State private var strokeSelection: StrokeSelection?
     /// Actual rendered block rects (content coordinates) — exact hit targets
@@ -115,18 +116,17 @@ struct SketchDetailView: View {
                     },
                     onLongPress: { point in
                         // Press-and-hold IS the text tool on both platforms —
-                        // no bar button. Focuses the block there or plants one.
+                        // no bar button. Selects the block there or plants one.
+                        // The block is resolved HERE, with the same real
+                        // frames the canvas gate used — the layer's estimate
+                        // disagreed near the edges of text-filled blocks and
+                        // planted a fresh (instantly-typing) block instead.
                         editingTexts = true
                         focusBlockRequest = (id: (focusBlockRequest?.id ?? 0) + 1,
-                                             point: point)
+                                             point: point,
+                                             blockID: blockAtPoint(point))
                     },
-                    blockAt: { point in
-                        texts.last(where: { block in
-                            let rect = blockFrames[block.id]?.insetBy(dx: -8, dy: -8)
-                                ?? block.approxRect
-                            return rect.contains(point)
-                        })?.id
-                    },
+                    blockAt: { point in blockAtPoint(point) },
                     onBlockMove: { id, delta, finished in
                         guard let index = texts.firstIndex(where: { $0.id == id })
                         else { return }
@@ -212,6 +212,16 @@ struct SketchDetailView: View {
             }
             commandRelay.send(command)
         }
+    }
+
+    /// The block covering a content point — REAL rendered rects (with an 8pt
+    /// grace ring), falling back to the text estimate before first layout.
+    private func blockAtPoint(_ point: CGPoint) -> UUID? {
+        texts.last(where: { block in
+            let rect = blockFrames[block.id]?.insetBy(dx: -8, dy: -8)
+                ?? block.approxRect
+            return rect.contains(point)
+        })?.id
     }
 
     /// Lowest text-block edge (content coordinates) so the page grows past

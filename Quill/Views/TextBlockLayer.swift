@@ -28,9 +28,10 @@ struct TextBlockLayer: View {
     @Binding var hasFocusedBlock: Bool
     /// Parent increments to force-deselect (Esc).
     let deselectSignal: Int
-    /// iPad long-press: focus the block at `point` (content coordinates) or
-    /// create one there. `id` increments per request.
-    var focusRequest: (id: Int, point: CGPoint)?
+    /// Select `blockID` (resolved by the parent against REAL frames) or
+    /// create a block at `point` (content coordinates). `id` increments per
+    /// request.
+    var focusRequest: (id: Int, point: CGPoint, blockID: UUID?)?
     /// Reports every block's ACTUAL rendered rect (content coordinates) —
     /// the canvas-side hit-tests need real frames, not estimates.
     var onFrames: (([UUID: CGRect]) -> Void)? = nil
@@ -115,9 +116,11 @@ struct TextBlockLayer: View {
             guard editing, let request = focusRequest else { return }
             // A press on an existing block SELECTS it (no keyboard yet — that
             // keeps the text Cut/Copy bar away); on empty paper it plants a
-            // fresh block, which does open for typing straight away.
-            if let hit = texts.last(where: { $0.approxRect.contains(request.point) }) {
-                selected = hit.id
+            // fresh block, which does open for typing straight away. The
+            // parent resolved the block against real frames — never re-derive
+            // it here from the estimate.
+            if let blockID = request.blockID, texts.contains(where: { $0.id == blockID }) {
+                selected = blockID
             } else {
                 addBlock(at: request.point)
             }
