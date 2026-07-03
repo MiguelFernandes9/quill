@@ -37,6 +37,12 @@ struct CanvasView: UIViewRepresentable {
     /// iPad: a finger long-press on the canvas, in content coordinates —
     /// the entry point into text editing (no recognizer on Mac).
     var onLongPress: ((CGPoint) -> Void)?
+    /// iPad: which text block (if any) covers a content point — lets the
+    /// long-press become a grab on existing blocks.
+    var blockAt: ((CGPoint) -> UUID?)?
+    /// iPad: live finger drag of a grabbed block. Incremental content-coord
+    /// delta per event; `finished` fires once on release.
+    var onBlockMove: ((UUID, CGSize, Bool) -> Void)?
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -424,12 +430,57 @@ struct CanvasView: UIViewRepresentable {
         }
 
         #if !targetEnvironment(macCatalyst)
+        /// Press-and-drag state: the block grabbed at `.began`, the anchor to
+        /// tell a grab-and-drag from a press-in-place, and the last point for
+        /// incremental move deltas.
+        private var pressedBlockID: UUID?
+        private var pressAnchor: CGPoint = .zero
+        private var lastPressPoint: CGPoint = .zero
+        private var pressMoved = false
+
+        /// One gesture, three outcomes: hold empty paper → new text block;
+        /// hold a block and drag → move it with the finger; hold a block and
+        /// release in place → edit it. (A long-press keeps tracking after
+        /// `.began` — `allowableMovement` only gates recognition.)
         @objc private func handleLongPress(_ g: UILongPressGestureRecognizer) {
-            guard g.state == .began, let view = g.view else { return }
-            let point = g.location(in: view)
+            guard let view = g.view else { return }
+            let raw = g.location(in: view)
             let scale = canvas?.zoomScale ?? 1
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            parent.onLongPress?(CGPoint(x: point.x / scale, y: point.y / scale))
+            let point = CGPoint(x: raw.x / scale, y: raw.y / scale)
+
+            switch g.state {
+            case .began:
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                pressAnchor = point
+                lastPressPoint = point
+                pressMoved = false
+                pressedBlockID = parent.blockAt?(point)
+                if pressedBlockID == nil {
+                    parent.onLongPress?(point) // empty paper → new block
+                }
+
+            case .changed:
+                guard let id = pressedBlockID else { return }
+                if hypot(point.x - pressAnchor.x, point.y - pressAnchor.y) > 4 {
+                    pressMoved = true
+                }
+                let delta = CGSize(width: point.x - lastPressPoint.x,
+                                   height: point.y - lastPressPoint.y)
+                lastPressPoint = point
+                if pressMoved { parent.onBlockMove?(id, delta, false) }
+
+            case .ended, .cancelled, .failed:
+                guard let id = pressedBlockID else { return }
+                pressedBlockID = nil
+                if pressMoved {
+                    parent.onBlockMove?(id, .zero, true) // drop: persist + sync
+                } else if g.state == .ended {
+                    parent.onLongPress?(pressAnchor) // press in place → edit
+                }
+
+            default:
+                break
+            }
         }
         #endif
 

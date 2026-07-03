@@ -108,6 +108,16 @@ struct SketchDetailView: View {
                         editingTexts = true
                         focusBlockRequest = (id: (focusBlockRequest?.id ?? 0) + 1,
                                              point: point)
+                    },
+                    blockAt: { point in
+                        texts.last(where: { $0.approxRect.contains(point) })?.id
+                    },
+                    onBlockMove: { id, delta, finished in
+                        guard let index = texts.firstIndex(where: { $0.id == id })
+                        else { return }
+                        texts[index].x += delta.width
+                        texts[index].y += delta.height
+                        if finished { commitTexts() }
                     }
                 )
                 .ignoresSafeArea(edges: .bottom)

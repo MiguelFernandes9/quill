@@ -1,4 +1,5 @@
 import Foundation
+import CoreGraphics
 
 /// Visual style of a text block (Notes-like "Aa" styles).
 enum TextStyle: String, Codable, CaseIterable {
@@ -80,5 +81,21 @@ struct TextBlock: Codable, Equatable, Hashable, Identifiable {
         try c.encode(size, forKey: .size)
         try c.encodeIfPresent(width, forKey: .width)
         try c.encodeIfPresent(height, forKey: .height)
+    }
+}
+
+extension TextBlock {
+    /// Rough on-canvas rect for hit-testing (finger press, long-press).
+    /// Boxes resized by handles are exact; auto-sized blocks are estimated
+    /// from their text, padded so a slightly-off press still lands.
+    var approxRect: CGRect {
+        let lines = text.isEmpty ? [""] : text.components(separatedBy: "\n")
+        let longest = lines.map(\.count).max() ?? 0
+        let estimatedWidth = min(360, max(120, CGFloat(longest) * size * 0.6))
+        let estimatedHeight = max(44, CGFloat(lines.count) * size * 1.35 + 14)
+        return CGRect(x: x, y: y,
+                      width: width.map { CGFloat($0) } ?? estimatedWidth,
+                      height: height.map { CGFloat($0) } ?? estimatedHeight)
+            .insetBy(dx: -8, dy: -8)
     }
 }
