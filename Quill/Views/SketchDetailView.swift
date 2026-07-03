@@ -135,11 +135,19 @@ struct SketchDetailView: View {
                         if finished { commitTexts() }
                     },
                     onInkSelection: { indices, rect in
+                        if editingTexts { deselectSignal += 1 } // ink takes over
                         strokeSelection = StrokeSelection(indices: indices, rect: rect)
-                    }
+                    },
+                    textActive: { editingTexts },
+                    onEmptyTap: { deselectSignal += 1 }
                 )
                 .ignoresSafeArea(edges: .bottom)
-                .allowsHitTesting(!editingTexts) // text mode freezes the pen
+                #if targetEnvironment(macCatalyst)
+                // Mac: a mouse click on the canvas is a pen dot, so text mode
+                // still freezes it. iPad stays live — fingers scroll and zoom
+                // while a block is selected; empty taps deselect.
+                .allowsHitTesting(!editingTexts)
+                #endif
             }
 
             ZStack(alignment: .topLeading) {

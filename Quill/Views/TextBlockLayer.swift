@@ -64,9 +64,12 @@ struct TextBlockLayer: View {
 
     var body: some View {
         ZStack(alignment: .topLeading) {
+            #if targetEnvironment(macCatalyst)
+            // Mac only: the frozen canvas can't deliver empty clicks, so a
+            // catcher provides click-empty-to-deselect (or add). On iPad the
+            // canvas stays LIVE while a block is selected — scroll and pencil
+            // keep working, and the canvas's own tap deselects.
             if editing {
-                // Tap empty space: deselect first; if nothing selected, add.
-                // Sized to the visible viewport only — never over the bar.
                 Color.clear
                     .frame(width: visibleRect.width, height: visibleRect.height)
                     .contentShape(Rectangle())
@@ -80,6 +83,7 @@ struct TextBlockLayer: View {
                     }
                     .offset(x: visibleRect.minX, y: visibleRect.minY)
             }
+            #endif
             ForEach($texts) { $block in
                 blockView($block)
             }

@@ -46,6 +46,11 @@ struct CanvasView: UIViewRepresentable {
     /// iPad: a finger tapped ink — these strokes (and their box, content
     /// coordinates) become the selection.
     var onInkSelection: ((IndexSet, CGRect) -> Void)?
+    /// iPad: is a text block currently active? While it is, the canvas stays
+    /// scrollable, so empty taps must deselect (and show no menu).
+    var textActive: (() -> Bool)?
+    /// iPad: a tap on truly empty paper while a block was active.
+    var onEmptyTap: (() -> Void)?
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -82,7 +87,9 @@ struct CanvasView: UIViewRepresentable {
         #if !targetEnvironment(macCatalyst)
         canvas.onInsertTextBlock = onLongPress
         let blockAt = blockAt
+        let textActive = textActive
         canvas.menuSuppressed = { [weak canvas] point in
+            if textActive?() == true { return true } // deselecting tap, not a menu
             if blockAt?(point) != nil { return true }
             guard let canvas else { return false }
             return !StrokeEdit.strokes(in: canvas.drawing, near: point).isEmpty
@@ -530,8 +537,12 @@ struct CanvasView: UIViewRepresentable {
             // public selection, so Quill provides its own).
             guard let canvas else { return }
             let hits = StrokeEdit.strokes(in: canvas.drawing, near: point)
-            guard !hits.isEmpty else { return }
-            parent.onInkSelection?(hits, StrokeEdit.bounds(of: hits, in: canvas.drawing))
+            if !hits.isEmpty {
+                parent.onInkSelection?(hits, StrokeEdit.bounds(of: hits, in: canvas.drawing))
+                return
+            }
+            // Empty paper while a block is active: deselect it.
+            if parent.textActive?() == true { parent.onEmptyTap?() }
         }
         #endif
 
@@ -634,7 +645,10 @@ extension CanvasView.Coordinator: UIGestureRecognizerDelegate {
         if g === blockTapRecognizer {
             if parent.blockAt?(point) != nil { return true }
             guard let drawing = (view as? PKCanvasView)?.drawing else { return false }
-            return !StrokeEdit.strokes(in: drawing, near: point).isEmpty
+            if !StrokeEdit.strokes(in: drawing, near: point).isEmpty { return true }
+            // Empty paper: claim the tap only while a block is active — it
+            // deselects instead of summoning PencilKit's menu.
+            return parent.textActive?() == true
         }
         return true
     }
