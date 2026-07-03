@@ -37,9 +37,15 @@ struct TextBlockLayer: View {
     var onChanged: () -> Void
 
     @FocusState private var focused: UUID?
+    /// Two-step activation, Notes-style: a first press SELECTS a block
+    /// (chrome + drag, no keyboard, so no Cut/Copy bar can appear); tapping
+    /// the selected block again FOCUSES its field for typing.
+    @State private var selected: UUID?
     /// In-flight drag offset for the block being moved.
     @State private var dragOffset: CGSize = .zero
     @State private var draggingID: UUID?
+
+    private var activeID: UUID? { focused ?? selected }
 
     // Studio metrics (mocks 4a/4b): Mac compact, iPad touch-sized.
     #if targetEnvironment(macCatalyst)
@@ -65,8 +71,8 @@ struct TextBlockLayer: View {
                     .frame(width: visibleRect.width, height: visibleRect.height)
                     .contentShape(Rectangle())
                     .onTapGesture { location in
-                        if focused != nil {
-                            focused = nil
+                        if activeID != nil {
+                            deactivate()
                         } else {
                             addBlock(at: CGPoint(x: location.x + visibleRect.minX,
                                                  y: location.y + visibleRect.minY))
@@ -86,28 +92,37 @@ struct TextBlockLayer: View {
         .onPreferenceChange(BlockFramesKey.self) { onFrames?($0) }
         .allowsHitTesting(editing)
         .onChange(of: focused) { old, value in
-            hasFocusedBlock = value != nil
+            if let value { selected = value } // typing implies selected
+            hasFocusedBlock = activeID != nil
             // Leaving a block commits its typed text — otherwise content typed
             // without a trailing Return only syncs when text mode ends.
             if old != nil { onChanged() }
         }
+        .onChange(of: selected) { _, _ in
+            hasFocusedBlock = activeID != nil
+        }
         .onChange(of: deselectSignal) { _, _ in
-            focused = nil
+            deactivate()
         }
         .onChange(of: editing) { _, nowEditing in
-            if !nowEditing { focused = nil }
+            if !nowEditing { deactivate() }
         }
         .onChange(of: focusRequest?.id) { _, _ in
             guard editing, let request = focusRequest else { return }
-            // A press on an existing block edits it; on empty paper it plants
-            // a new one. Bounds are estimated for auto-sized blocks — a miss
-            // just means a fresh block next to the old one.
+            // A press on an existing block SELECTS it (no keyboard yet — that
+            // keeps the text Cut/Copy bar away); on empty paper it plants a
+            // fresh block, which does open for typing straight away.
             if let hit = texts.last(where: { $0.approxRect.contains(request.point) }) {
-                focused = hit.id
+                selected = hit.id
             } else {
                 addBlock(at: request.point)
             }
         }
+    }
+
+    private func deactivate() {
+        focused = nil
+        selected = nil
     }
 
     // MARK: - Block
@@ -116,6 +131,7 @@ struct TextBlockLayer: View {
         let value = block.wrappedValue
         let isDragging = draggingID == value.id
         let isFocused = focused == value.id
+        let isActive = activeID == value.id
 
         // The FIELD keeps its own content-driven layout (the Mac idiom needs a
         // layout change per keystroke or typed text doesn't render); the BOX
@@ -130,7 +146,10 @@ struct TextBlockLayer: View {
             // or handle-dragging would recreate the field per tick.
             .id("field-\(value.id)-\(Int(value.size))")
             .focused($focused, equals: value.id)
-            .disabled(!editing)
+            // Enabled only for the ACTIVE block: an inactive field can't
+            // grab taps or pop the text Cut/Copy bar; a selected one accepts
+            // the second tap that starts typing.
+            .disabled(!editing || !isActive)
             .onSubmit { onChanged() }
             .fixedSize(horizontal: false, vertical: true)
             .frame(minWidth: 40, maxWidth: value.width == nil ? 360 : .infinity,
@@ -149,8 +168,8 @@ struct TextBlockLayer: View {
         // solid accent border on a more opaque white (mock 4a/4b).
         .background(
             RoundedRectangle(cornerRadius: blockRadius)
-                .fill(Color.white.opacity(isFocused ? 0.85 : 0.72))
-                .opacity((editing && isFocused) || !value.text.isEmpty ? 1 : 0)
+                .fill(Color.white.opacity(isActive ? 0.85 : 0.72))
+                .opacity((editing && isActive) || !value.text.isEmpty ? 1 : 0)
         )
         // Only the PRESSED block shows its border — text mode is entered
         // per-object now, so lighting up every block's box on one press
@@ -158,14 +177,20 @@ struct TextBlockLayer: View {
         .overlay(
             RoundedRectangle(cornerRadius: blockRadius)
                 .stroke(QuillTheme.accent, style: StrokeStyle(lineWidth: 1.5))
-                .opacity(editing && isFocused ? 1 : 0)
+                .opacity(editing && isActive ? 1 : 0)
         )
         // Focus tap covers the block body ONLY — attached BEFORE the strip
         // overlay, or the parent gesture swallows the strip's buttons
-        // (that's what broke delete).
+        // (that's what broke delete). First tap selects; the second starts
+        // typing.
         .contentShape(RoundedRectangle(cornerRadius: blockRadius))
         .onTapGesture {
-            if editing { focused = value.id }
+            guard editing else { return }
+            if selected == value.id, focused != value.id {
+                focused = value.id
+            } else if !isActive {
+                selected = value.id
+            }
         }
         // Drag anywhere on an UNFOCUSED block to move it (intuitive drag &
         // drop) — high priority so the text field underneath can't claim the
@@ -174,13 +199,13 @@ struct TextBlockLayer: View {
         .highPriorityGesture(dragGesture(for: block), including: isFocused ? .subviews : .all)
         // Corner handles: drag to resize the block's box (A± = font size).
         .overlay {
-            if editing && isFocused {
+            if editing && isActive {
                 resizeHandles(block)
             }
         }
         // Control strip floats centered BELOW the block (mock 4a/4b).
         .overlay(alignment: .bottom) {
-            if editing && isFocused {
+            if editing && isActive {
                 controlStrip(block)
                     .offset(y: stripOffset)
             }
@@ -294,7 +319,7 @@ struct TextBlockLayer: View {
                 // removing synchronously while the block's TextField is still
                 // focused crashes SwiftUI's ForEach-binding write-back.
                 let id = block.wrappedValue.id
-                focused = nil
+                deactivate()
                 DispatchQueue.main.async {
                     texts.removeAll { $0.id == id }
                     onChanged()
@@ -313,13 +338,18 @@ struct TextBlockLayer: View {
         Color.white.opacity(0.15).frame(width: 1, height: stripButton.height - 12)
     }
 
-    /// Step the block's font size and keep it focused — the size-keyed field
-    /// identity recreates the field, which would otherwise drop focus.
+    /// Step the block's font size. The size-keyed field identity recreates
+    /// the field, which would drop an active FOCUS — re-assert it, but only
+    /// if the user was actually typing (a merely-selected block must not
+    /// summon the keyboard from A±).
     private func resize(_ block: Binding<TextBlock>, by step: Double) {
         let id = block.wrappedValue.id
+        let wasFocused = focused == id
         block.wrappedValue.size = min(60, max(11, block.wrappedValue.size + step))
         onChanged()
-        DispatchQueue.main.async { focused = id }
+        if wasFocused {
+            DispatchQueue.main.async { focused = id }
+        }
     }
 
     private func dragGesture(for block: Binding<TextBlock>) -> some Gesture {
@@ -340,7 +370,8 @@ struct TextBlockLayer: View {
     private func addBlock(at location: CGPoint) {
         let block = TextBlock(x: location.x, y: location.y)
         texts.append(block)
-        focused = block.id
+        selected = block.id
+        focused = block.id // fresh block: straight to typing
         onChanged()
     }
 }
