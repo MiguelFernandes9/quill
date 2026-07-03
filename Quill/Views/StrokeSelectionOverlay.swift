@@ -17,7 +17,11 @@ struct StrokeSelectionOverlay: View {
     /// `.duplicateStrokes`).
     var onCommand: (CanvasCommand) -> Void
 
+    /// Translation not yet applied to the ink (kept tiny by the live apply).
     @State private var dragOffset: CGSize = .zero
+    /// Translation already applied to the ink during this drag.
+    @State private var applied: CGSize = .zero
+    @State private var lastApplyTime: CFTimeInterval = 0
 
     private let stripButton = CGSize(width: 48, height: 44)
 
@@ -43,19 +47,38 @@ struct StrokeSelectionOverlay: View {
         }
     }
 
+    /// The ink follows the finger: the pending translation is applied to the
+    /// strokes DURING the drag, throttled to ~20 Hz (every apply re-rasterizes
+    /// the canvas). The box shows only the tiny not-yet-applied remainder, so
+    /// ink and box move as one. The selection rect is read through the binding
+    /// — it advances with each live apply.
     private func dragGesture(_ current: StrokeSelection) -> some Gesture {
         DragGesture(minimumDistance: 2)
             .onChanged { value in
-                dragOffset = value.translation
+                dragOffset = CGSize(width: value.translation.width - applied.width,
+                                    height: value.translation.height - applied.height)
+                let now = CACurrentMediaTime()
+                guard now - lastApplyTime > 0.05 else { return }
+                applyPending(current.indices)
+                lastApplyTime = now
             }
             .onEnded { value in
-                dragOffset = .zero
-                let dx = value.translation.width
-                let dy = value.translation.height
-                guard abs(dx) > 0.5 || abs(dy) > 0.5 else { return }
-                onCommand(.transformStrokes(current.indices, dx: dx, dy: dy))
-                selection?.rect = current.rect.offsetBy(dx: dx, dy: dy)
+                dragOffset = CGSize(width: value.translation.width - applied.width,
+                                    height: value.translation.height - applied.height)
+                applyPending(current.indices)
+                applied = .zero
             }
+    }
+
+    /// Move the ink by the un-applied remainder and advance the box with it.
+    private func applyPending(_ indices: IndexSet) {
+        let dx = dragOffset.width
+        let dy = dragOffset.height
+        guard abs(dx) > 0.5 || abs(dy) > 0.5 else { return }
+        onCommand(.transformStrokes(indices, dx: dx, dy: dy))
+        selection?.rect = (selection?.rect ?? .zero).offsetBy(dx: dx, dy: dy)
+        applied = CGSize(width: applied.width + dx, height: applied.height + dy)
+        dragOffset = .zero
     }
 
     private func strip(_ current: StrokeSelection) -> some View {
