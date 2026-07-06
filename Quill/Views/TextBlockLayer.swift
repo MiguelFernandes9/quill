@@ -45,6 +45,9 @@ struct TextBlockLayer: View {
     /// In-flight drag offset for the block being moved.
     @State private var dragOffset: CGSize = .zero
     @State private var draggingID: UUID?
+    /// Each block's rendered rect (textLayer coords) — drives the layer-level
+    /// resize handles' absolute positions.
+    @State private var localFrames: [UUID: CGRect] = [:]
 
     private var activeID: UUID? { focused ?? selected }
 
@@ -67,20 +70,16 @@ struct TextBlockLayer: View {
         ZStack(alignment: .topLeading) {
             #if targetEnvironment(macCatalyst)
             // Mac only: the frozen canvas can't deliver empty clicks, so a
-            // catcher provides click-empty-to-deselect (or add). On iPad the
-            // canvas stays LIVE while a block is selected — scroll and pencil
-            // keep working, and the canvas's own tap deselects.
+            // catcher provides click-empty-to-DESELECT. Adding a block is the
+            // right-click menu's job now — an empty click must never plant
+            // one (that leftover made stray blocks pop in). On iPad the canvas
+            // stays LIVE while a block is selected and deselects on its own.
             if editing {
                 Color.clear
                     .frame(width: visibleRect.width, height: visibleRect.height)
                     .contentShape(Rectangle())
-                    .onTapGesture { location in
-                        if activeID != nil {
-                            deactivate()
-                        } else {
-                            addBlock(at: CGPoint(x: location.x + visibleRect.minX,
-                                                 y: location.y + visibleRect.minY))
-                        }
+                    .onTapGesture { _ in
+                        if activeID != nil { deactivate() }
                     }
                     .offset(x: visibleRect.minX, y: visibleRect.minY)
             }
@@ -88,13 +87,26 @@ struct TextBlockLayer: View {
             ForEach($texts) { $block in
                 blockView($block)
             }
+            // Resize handles for the active block live HERE, at the layer
+            // level in absolute (textLayer) coordinates — not as a block
+            // overlay. An overlay is clipped to the block's own frame, so the
+            // handles (which sit OUTSIDE the corners) were barely hittable;
+            // a fingertip caught the sliver, a Mac pointer never did.
+            if editing, let id = activeID,
+               let index = texts.firstIndex(where: { $0.id == id }),
+               let frame = localFrames[id] {
+                resizeHandlesLayer($texts[index], frame: frame)
+            }
         }
         // Always fill the canvas: in pen mode the expanding tap-catcher is
         // gone, and a shrunk-to-content layer gets re-centered by the parent
         // ZStack — every block visually jumps on tool switch.
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .coordinateSpace(name: "textLayer") // stable space for drag deltas
-        .onPreferenceChange(BlockFramesKey.self) { onFrames?($0) }
+        .onPreferenceChange(BlockFramesKey.self) { frames in
+            localFrames = frames
+            onFrames?(frames)
+        }
         .allowsHitTesting(editing)
         .onChange(of: focused) { old, value in
             if let value { selected = value } // typing implies selected
@@ -204,12 +216,6 @@ struct TextBlockLayer: View {
         // drag. A focused block keeps its text interactions (its Mac field
         // editor owns that rect anyway) — move it with the strip's ✥ handle.
         .highPriorityGesture(dragGesture(for: block), including: isFocused ? .subviews : .all)
-        // Corner handles: drag to resize the block's box (A± = font size).
-        .overlay {
-            if editing && isActive {
-                resizeHandles(block)
-            }
-        }
         // Control strip floats centered BELOW the block (mock 4a/4b).
         .overlay(alignment: .bottom) {
             if editing && isActive {
@@ -231,36 +237,35 @@ struct TextBlockLayer: View {
                 y: value.y + (isDragging ? dragOffset.height : 0))
     }
 
-    /// Four white circles with accent borders on the block's corners. Dragging
-    /// resizes the box as a free rectangle: each handle moves its own two
-    /// edges; the opposite corner stays anchored. Drag out a wide short box or
-    /// a tall narrow one — the text wraps (and crops) to fit.
-    private func resizeHandles(_ block: Binding<TextBlock>) -> some View {
-        GeometryReader { geo in
-            // Handles sit OUTSIDE the box corners: a focused field (and its
-            // Mac field editor) owns events over the block's own rect, which
-            // silently ate on-corner handle drags — the strip below the block
-            // always worked for exactly this reason.
-            let out: CGFloat = handleSize / 2 + 6
-            let corners: [(point: CGPoint, leading: Bool, top: Bool)] = [
-                (CGPoint(x: -out, y: -out), true, true),
-                (CGPoint(x: geo.size.width + out, y: -out), false, true),
-                (CGPoint(x: -out, y: geo.size.height + out), true, false),
-                (CGPoint(x: geo.size.width + out, y: geo.size.height + out), false, false),
-            ]
+    /// Four white circles with accent borders just OUTSIDE the block's
+    /// corners. Rendered at the layer level (absolute textLayer coordinates)
+    /// so their hit area isn't clipped to the block's frame — an overlay was,
+    /// leaving only a sliver reachable. Dragging resizes the box as a free
+    /// rectangle: each handle moves its own two edges; the opposite corner
+    /// stays anchored. High priority, so it wins over the body's move drag.
+    private func resizeHandlesLayer(_ block: Binding<TextBlock>, frame: CGRect) -> some View {
+        let out: CGFloat = handleSize / 2 + 6
+        let corners: [(point: CGPoint, leading: Bool, top: Bool)] = [
+            (CGPoint(x: frame.minX - out, y: frame.minY - out), true, true),
+            (CGPoint(x: frame.maxX + out, y: frame.minY - out), false, true),
+            (CGPoint(x: frame.minX - out, y: frame.maxY + out), true, false),
+            (CGPoint(x: frame.maxX + out, y: frame.maxY + out), false, false),
+        ]
+        return ZStack(alignment: .topLeading) {
             ForEach(corners.indices, id: \.self) { index in
                 let corner = corners[index]
                 Circle()
                     .fill(.white)
                     .overlay(Circle().stroke(QuillTheme.accent, lineWidth: 1.5))
                     .frame(width: handleSize, height: handleSize)
-                    .padding(10) // real hit target around the tiny circle
+                    .padding(12) // generous hit target around the tiny circle
                     .contentShape(Circle())
                     .position(corner.point)
-                    .gesture(resizeGesture(for: block, leading: corner.leading,
-                                           top: corner.top, startSize: geo.size))
+                    .highPriorityGesture(resizeGesture(for: block, leading: corner.leading,
+                                                       top: corner.top, startSize: frame.size))
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     /// In-flight resize bookkeeping (box size and origin at drag start).
