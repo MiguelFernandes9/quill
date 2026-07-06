@@ -45,9 +45,6 @@ struct TextBlockLayer: View {
     /// In-flight drag offset for the block being moved.
     @State private var dragOffset: CGSize = .zero
     @State private var draggingID: UUID?
-    /// Each block's rendered rect (textLayer coords) — drives the layer-level
-    /// resize handles' absolute positions.
-    @State private var localFrames: [UUID: CGRect] = [:]
 
     private var activeID: UUID? { focused ?? selected }
 
@@ -87,31 +84,13 @@ struct TextBlockLayer: View {
             ForEach($texts) { $block in
                 blockView($block)
             }
-            // Resize handles for the active block live HERE, at the layer
-            // level in absolute (textLayer) coordinates — not as a block
-            // overlay. An overlay is clipped to the block's own frame, so the
-            // handles (which sit OUTSIDE the corners) were barely hittable;
-            // a fingertip caught the sliver, a Mac pointer never did. While
-            // the block is being body-dragged its model x/y hasn't moved yet
-            // (only a visual offset), so the handles ride that same offset.
-            if editing, let id = activeID,
-               let index = texts.firstIndex(where: { $0.id == id }),
-               let base = localFrames[id] {
-                let frame = draggingID == id
-                    ? base.offsetBy(dx: dragOffset.width, dy: dragOffset.height)
-                    : base
-                resizeHandlesLayer($texts[index], frame: frame)
-            }
         }
         // Always fill the canvas: in pen mode the expanding tap-catcher is
         // gone, and a shrunk-to-content layer gets re-centered by the parent
         // ZStack — every block visually jumps on tool switch.
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .coordinateSpace(name: "textLayer") // stable space for drag deltas
-        .onPreferenceChange(BlockFramesKey.self) { frames in
-            localFrames = frames
-            onFrames?(frames)
-        }
+        .onPreferenceChange(BlockFramesKey.self) { onFrames?($0) }
         .allowsHitTesting(editing)
         .onChange(of: focused) { old, value in
             if let value { selected = value } // typing implies selected
@@ -221,6 +200,17 @@ struct TextBlockLayer: View {
         // drag. A focused block keeps its text interactions (its Mac field
         // editor owns that rect anyway) — move it with the strip's ✥ handle.
         .highPriorityGesture(dragGesture(for: block), including: isFocused ? .subviews : .all)
+        // Corner resize handles: a block OVERLAY (grown beyond the block with
+        // negative padding so its hit area reaches the handles OUTSIDE the
+        // corners). An overlay shares the block's own event routing — which
+        // provably works, since the body-move drag does — where a separate
+        // top-level layer's clicks never landed on Mac. Placed before the
+        // final .offset, so the handles ride body drags with the block.
+        .overlay {
+            if editing && isActive {
+                resizeHandlesOverlay(block)
+            }
+        }
         // Control strip floats centered BELOW the block (mock 4a/4b).
         .overlay(alignment: .bottom) {
             if editing && isActive {
@@ -243,42 +233,45 @@ struct TextBlockLayer: View {
     }
 
     /// Four white circles with accent borders just OUTSIDE the block's
-    /// corners. Rendered at the layer level in absolute (textLayer)
-    /// coordinates so their hit area isn't clipped to the block's frame.
-    ///
-    /// Placement uses `.offset`, NOT `.position`: a `.position` view fills all
-    /// available space, so four stacked ones had the topmost swallow the other
-    /// three (dead handles). Small `.offset` views only occupy their own
-    /// bounds, so every handle stays hittable and empty space passes through to
-    /// the block. High priority, so a corner grab wins over the body-move drag.
-    private func resizeHandlesLayer(_ block: Binding<TextBlock>, frame: CGRect) -> some View {
+    /// corners. Built as a GeometryReader grown `margin` past the block on
+    /// every side (negative padding) so the overlay's hit area extends to the
+    /// out-of-corner handles — a plain overlay clips hit-testing to the block
+    /// frame, which left the handles unreachable. Handles are `.offset` small
+    /// views (not `.position`, which fills space and lets the topmost swallow
+    /// the rest). High priority, so a corner grab beats the body-move drag.
+    private func resizeHandlesOverlay(_ block: Binding<TextBlock>) -> some View {
+        let margin: CGFloat = 28
         let out: CGFloat = handleSize / 2 + 6
-        let pad: CGFloat = 13
+        let pad: CGFloat = 12
         let box = handleSize + pad * 2 // full hit-target size
-        // Centre of each handle in textLayer coordinates.
-        let corners: [(center: CGPoint, leading: Bool, top: Bool)] = [
-            (CGPoint(x: frame.minX - out, y: frame.minY - out), true, true),
-            (CGPoint(x: frame.maxX + out, y: frame.minY - out), false, true),
-            (CGPoint(x: frame.minX - out, y: frame.maxY + out), true, false),
-            (CGPoint(x: frame.maxX + out, y: frame.maxY + out), false, false),
-        ]
-        return ZStack(alignment: .topLeading) {
-            ForEach(corners.indices, id: \.self) { index in
-                let corner = corners[index]
-                Circle()
-                    .fill(.white)
-                    .overlay(Circle().stroke(QuillTheme.accent, lineWidth: 1.5))
-                    .frame(width: handleSize, height: handleSize)
-                    .padding(pad) // generous hit target around the tiny circle
-                    .contentShape(Circle())
-                    .highPriorityGesture(resizeGesture(for: block, leading: corner.leading,
-                                                       top: corner.top, startSize: frame.size))
-                    // topLeading origin → offset the box so its centre lands
-                    // on the corner point.
-                    .offset(x: corner.center.x - box / 2, y: corner.center.y - box / 2)
+        return GeometryReader { geo in
+            // geo.size = block + 2·margin (from the negative padding below).
+            let bw = geo.size.width - margin * 2
+            let bh = geo.size.height - margin * 2
+            let corners: [(center: CGPoint, leading: Bool, top: Bool)] = [
+                (CGPoint(x: margin - out, y: margin - out), true, true),
+                (CGPoint(x: margin + bw + out, y: margin - out), false, true),
+                (CGPoint(x: margin - out, y: margin + bh + out), true, false),
+                (CGPoint(x: margin + bw + out, y: margin + bh + out), false, false),
+            ]
+            ZStack(alignment: .topLeading) {
+                ForEach(corners.indices, id: \.self) { index in
+                    let corner = corners[index]
+                    Circle()
+                        .fill(.white)
+                        .overlay(Circle().stroke(QuillTheme.accent, lineWidth: 1.5))
+                        .frame(width: handleSize, height: handleSize)
+                        .padding(pad) // generous hit target around the tiny circle
+                        .contentShape(Circle())
+                        .highPriorityGesture(resizeGesture(for: block, leading: corner.leading,
+                                                           top: corner.top,
+                                                           startSize: CGSize(width: bw, height: bh)))
+                        .offset(x: corner.center.x - box / 2, y: corner.center.y - box / 2)
+                }
             }
+            .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(-margin) // grow the overlay's frame beyond the block
     }
 
     /// In-flight resize bookkeeping (box size and origin at drag start).
