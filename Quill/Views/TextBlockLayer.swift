@@ -91,10 +91,15 @@ struct TextBlockLayer: View {
             // level in absolute (textLayer) coordinates — not as a block
             // overlay. An overlay is clipped to the block's own frame, so the
             // handles (which sit OUTSIDE the corners) were barely hittable;
-            // a fingertip caught the sliver, a Mac pointer never did.
+            // a fingertip caught the sliver, a Mac pointer never did. While
+            // the block is being body-dragged its model x/y hasn't moved yet
+            // (only a visual offset), so the handles ride that same offset.
             if editing, let id = activeID,
                let index = texts.firstIndex(where: { $0.id == id }),
-               let frame = localFrames[id] {
+               let base = localFrames[id] {
+                let frame = draggingID == id
+                    ? base.offsetBy(dx: dragOffset.width, dy: dragOffset.height)
+                    : base
                 resizeHandlesLayer($texts[index], frame: frame)
             }
         }
@@ -238,14 +243,20 @@ struct TextBlockLayer: View {
     }
 
     /// Four white circles with accent borders just OUTSIDE the block's
-    /// corners. Rendered at the layer level (absolute textLayer coordinates)
-    /// so their hit area isn't clipped to the block's frame — an overlay was,
-    /// leaving only a sliver reachable. Dragging resizes the box as a free
-    /// rectangle: each handle moves its own two edges; the opposite corner
-    /// stays anchored. High priority, so it wins over the body's move drag.
+    /// corners. Rendered at the layer level in absolute (textLayer)
+    /// coordinates so their hit area isn't clipped to the block's frame.
+    ///
+    /// Placement uses `.offset`, NOT `.position`: a `.position` view fills all
+    /// available space, so four stacked ones had the topmost swallow the other
+    /// three (dead handles). Small `.offset` views only occupy their own
+    /// bounds, so every handle stays hittable and empty space passes through to
+    /// the block. High priority, so a corner grab wins over the body-move drag.
     private func resizeHandlesLayer(_ block: Binding<TextBlock>, frame: CGRect) -> some View {
         let out: CGFloat = handleSize / 2 + 6
-        let corners: [(point: CGPoint, leading: Bool, top: Bool)] = [
+        let pad: CGFloat = 13
+        let box = handleSize + pad * 2 // full hit-target size
+        // Centre of each handle in textLayer coordinates.
+        let corners: [(center: CGPoint, leading: Bool, top: Bool)] = [
             (CGPoint(x: frame.minX - out, y: frame.minY - out), true, true),
             (CGPoint(x: frame.maxX + out, y: frame.minY - out), false, true),
             (CGPoint(x: frame.minX - out, y: frame.maxY + out), true, false),
@@ -258,11 +269,13 @@ struct TextBlockLayer: View {
                     .fill(.white)
                     .overlay(Circle().stroke(QuillTheme.accent, lineWidth: 1.5))
                     .frame(width: handleSize, height: handleSize)
-                    .padding(12) // generous hit target around the tiny circle
+                    .padding(pad) // generous hit target around the tiny circle
                     .contentShape(Circle())
-                    .position(corner.point)
                     .highPriorityGesture(resizeGesture(for: block, leading: corner.leading,
                                                        top: corner.top, startSize: frame.size))
+                    // topLeading origin → offset the box so its centre lands
+                    // on the corner point.
+                    .offset(x: corner.center.x - box / 2, y: corner.center.y - box / 2)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
