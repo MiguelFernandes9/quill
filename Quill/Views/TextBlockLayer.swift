@@ -200,27 +200,9 @@ struct TextBlockLayer: View {
         // drag. A focused block keeps its text interactions (its Mac field
         // editor owns that rect anyway) — move it with the strip's ✥ handle.
         .highPriorityGesture(dragGesture(for: block), including: isFocused ? .subviews : .all)
-        // Corner resize handles: a block OVERLAY (grown beyond the block with
-        // negative padding so its hit area reaches the handles OUTSIDE the
-        // corners). An overlay shares the block's own event routing — which
-        // provably works, since the body-move drag does — where a separate
-        // top-level layer's clicks never landed on Mac. Placed before the
-        // final .offset, so the handles ride body drags with the block.
-        .overlay {
-            if editing && isActive {
-                resizeHandlesOverlay(block)
-            }
-        }
-        // Control strip floats centered BELOW the block (mock 4a/4b).
-        .overlay(alignment: .bottom) {
-            if editing && isActive {
-                controlStrip(block)
-                    .offset(y: stripOffset)
-            }
-        }
+        // Report the BOX's rect (model origin + measured size) for the
+        // canvas-side hit-tests. Measured BEFORE the margin padding below.
         .background(
-            // Blocks are placed via .offset, which never moves GEOMETRY — the
-            // real rect is the model origin plus the measured size.
             GeometryReader { geo in
                 Color.clear.preference(key: BlockFramesKey.self,
                                        value: [value.id: CGRect(x: value.x, y: value.y,
@@ -228,24 +210,51 @@ struct TextBlockLayer: View {
                                                                 height: geo.size.height)])
             }
         )
-        .offset(x: value.x + (isDragging ? dragOffset.width : 0),
-                y: value.y + (isDragging ? dragOffset.height : 0))
+        // A REAL margin around the box. SwiftUI never hit-tests content drawn
+        // outside a view's frame, so the previous out-of-corner handles (an
+        // overlay grown with NEGATIVE padding) rendered but received nothing —
+        // that's why the body drag worked and the handles were dead. Positive
+        // padding makes the container frame genuinely CONTAIN the handles, so
+        // their hit area sits inside a real frame. The block's offset is
+        // pulled back by the margin so nothing shifts visually.
+        .padding(handleMargin)
+        .overlay {
+            if editing && isActive {
+                resizeHandlesOverlay(block, margin: handleMargin)
+            }
+        }
+        // Control strip floats centered BELOW the block (mock 4a/4b). The
+        // container now extends `handleMargin` past the box, so pull the strip
+        // back up by it to keep the same gap under the box.
+        .overlay(alignment: .bottom) {
+            if editing && isActive {
+                controlStrip(block)
+                    .offset(y: stripOffset - handleMargin)
+            }
+        }
+        .offset(x: value.x - handleMargin + (isDragging ? dragOffset.width : 0),
+                y: value.y - handleMargin + (isDragging ? dragOffset.height : 0))
     }
 
+    /// Margin of transparent, hittable space padded around every block so the
+    /// out-of-corner resize handles fall inside a real frame.
+    private var handleMargin: CGFloat { 28 }
+
     /// Four white circles with accent borders just OUTSIDE the block's
-    /// corners. Built as a GeometryReader grown `margin` past the block on
-    /// every side (negative padding) so the overlay's hit area extends to the
-    /// out-of-corner handles — a plain overlay clips hit-testing to the block
-    /// frame, which left the handles unreachable. Handles are `.offset` small
-    /// views (not `.position`, which fills space and lets the topmost swallow
-    /// the rest). High priority, so a corner grab beats the body-move drag.
-    private func resizeHandlesOverlay(_ block: Binding<TextBlock>) -> some View {
-        let margin: CGFloat = 28
+    /// corners, rendered as an overlay on the MARGIN-PADDED container so the
+    /// container frame contains them (SwiftUI won't hit-test anything outside a
+    /// view's frame). Handles are `.offset` small views (not `.position`,
+    /// which fills space and lets the topmost swallow the rest). High priority,
+    /// so a corner grab beats the body-move drag.
+    private func resizeHandlesOverlay(_ block: Binding<TextBlock>, margin: CGFloat) -> some View {
         let out: CGFloat = handleSize / 2 + 6
         let pad: CGFloat = 12
         let box = handleSize + pad * 2 // full hit-target size
+        // INVARIANT: out + box/2 < margin, or a handle's hit target clips past
+        // the padded container edge and goes dead again (iPad has ~1pt slack).
+        // If handleSize/pad grow, grow handleMargin to match.
         return GeometryReader { geo in
-            // geo.size = block + 2·margin (from the negative padding below).
+            // geo.size = box + 2·margin (the overlay matches the padded frame).
             let bw = geo.size.width - margin * 2
             let bh = geo.size.height - margin * 2
             let corners: [(center: CGPoint, leading: Bool, top: Bool)] = [
@@ -271,7 +280,6 @@ struct TextBlockLayer: View {
             }
             .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
         }
-        .padding(-margin) // grow the overlay's frame beyond the block
     }
 
     /// In-flight resize bookkeeping (box size and origin at drag start).
