@@ -282,6 +282,13 @@ struct CanvasView: UIViewRepresentable {
             canvas.addGestureRecognizer(longPress)
             blockPressRecognizer = longPress
 
+            #if targetEnvironment(macCatalyst)
+            // Right-click on the canvas: a native context menu with the
+            // text-block action (the iPad's equivalent lives in PencilKit's
+            // tap edit menu).
+            canvas.addInteraction(UIContextMenuInteraction(delegate: self))
+            #endif
+
             #if !targetEnvironment(macCatalyst)
             // A plain finger TAP on a block opens it for interaction (drag,
             // resize, edit) — no menu, no hold. Gated (shouldReceive) to
@@ -697,6 +704,28 @@ struct CanvasView: UIViewRepresentable {
         }
     }
 }
+
+#if targetEnvironment(macCatalyst)
+extension CanvasView.Coordinator: UIContextMenuInteractionDelegate {
+    func contextMenuInteraction(_ interaction: UIContextMenuInteraction,
+                                configurationForMenuAtLocation location: CGPoint)
+        -> UIContextMenuConfiguration? {
+        let scale = canvas?.zoomScale ?? 1
+        let point = CGPoint(x: location.x / scale, y: location.y / scale)
+        let onBlock = parent.blockAt?(point) != nil
+        return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
+            UIMenu(children: [
+                UIAction(title: onBlock ? "Edit Text Block" : "Add Text Block",
+                         image: UIImage(systemName: "character.cursor.ibeam")) { _ in
+                    // Same path as click-and-hold: selects the block there,
+                    // or plants a fresh one at the pointer.
+                    self?.parent.onLongPress?(point)
+                }
+            ])
+        })
+    }
+}
+#endif
 
 extension CanvasView.Coordinator: UIGestureRecognizerDelegate {
     func gestureRecognizer(_ g: UIGestureRecognizer,
