@@ -45,6 +45,9 @@ struct TextBlockLayer: View {
     /// In-flight drag offset for the block being moved.
     @State private var dragOffset: CGSize = .zero
     @State private var draggingID: UUID?
+    /// Each block's measured box rect (content coords) — the resize gesture
+    /// needs the box size as its start size for auto-sized blocks.
+    @State private var boxRects: [UUID: CGRect] = [:]
 
     private var activeID: UUID? { focused ?? selected }
 
@@ -90,7 +93,10 @@ struct TextBlockLayer: View {
         // ZStack — every block visually jumps on tool switch.
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .coordinateSpace(name: "textLayer") // stable space for drag deltas
-        .onPreferenceChange(BlockFramesKey.self) { onFrames?($0) }
+        .onPreferenceChange(BlockFramesKey.self) { frames in
+            boxRects = frames
+            onFrames?(frames)
+        }
         .allowsHitTesting(editing)
         .onChange(of: focused) { old, value in
             if let value { selected = value } // typing implies selected
@@ -218,10 +224,22 @@ struct TextBlockLayer: View {
         // their hit area sits inside a real frame. The block's offset is
         // pulled back by the margin so nothing shifts visually.
         .padding(handleMargin)
-        .overlay {
-            if editing && isActive {
-                resizeHandlesOverlay(block, margin: handleMargin)
-            }
+        // Four corner handles, each placed with .overlay(alignment:) + a tiny
+        // fixed offset — the SAME structure as the working control strip. The
+        // earlier GeometryReader-fill + large per-handle .offset drew the dots
+        // correctly but their hit targets never moved with the offset, so even
+        // a Button there received nothing while the strip's buttons worked.
+        .overlay(alignment: .topLeading) {
+            if editing && isActive { cornerHandle(block, leading: true, top: true) }
+        }
+        .overlay(alignment: .topTrailing) {
+            if editing && isActive { cornerHandle(block, leading: false, top: true) }
+        }
+        .overlay(alignment: .bottomLeading) {
+            if editing && isActive { cornerHandle(block, leading: true, top: false) }
+        }
+        .overlay(alignment: .bottomTrailing) {
+            if editing && isActive { cornerHandle(block, leading: false, top: false) }
         }
         // Control strip floats centered BELOW the block (mock 4a/4b). The
         // container now extends `handleMargin` past the box, so pull the strip
@@ -240,80 +258,58 @@ struct TextBlockLayer: View {
     /// out-of-corner resize handles fall inside a real frame.
     private var handleMargin: CGFloat { 28 }
 
-    /// Four white circles with accent borders just OUTSIDE the block's
-    /// corners, rendered as an overlay on the MARGIN-PADDED container so the
-    /// container frame contains them (SwiftUI won't hit-test anything outside a
-    /// view's frame). Handles are `.offset` small views (not `.position`,
-    /// which fills space and lets the topmost swallow the rest). High priority,
-    /// so a corner grab beats the body-move drag.
-    private func resizeHandlesOverlay(_ block: Binding<TextBlock>, margin: CGFloat) -> some View {
+    /// One corner handle. The drag is driven by a real UIKit
+    /// `UIPanGestureRecognizer` (`ResizePanHandle`), NOT a SwiftUI gesture:
+    /// on Mac Catalyst, SwiftUI drag gestures on overlays over the frozen
+    /// canvas never fire (even a Button placed there via a filled overlay was
+    /// dead), while real UIKit controls — like the strip's buttons — do get
+    /// events. The white circle is drawn on top, non-interactive.
+    private func cornerHandle(_ block: Binding<TextBlock>, leading: Bool, top: Bool) -> some View {
         let out: CGFloat = handleSize / 2 + 6
-        let pad: CGFloat = 12
-        let box = handleSize + pad * 2 // full hit-target size
-        // INVARIANT: out + box/2 < margin, or a handle's hit target clips past
-        // the padded container edge and goes dead again (iPad has ~1pt slack).
-        // If handleSize/pad grow, grow handleMargin to match.
-        return GeometryReader { geo in
-            // geo.size = box + 2·margin (the overlay matches the padded frame).
-            let bw = geo.size.width - margin * 2
-            let bh = geo.size.height - margin * 2
-            let corners: [(center: CGPoint, leading: Bool, top: Bool)] = [
-                (CGPoint(x: margin - out, y: margin - out), true, true),
-                (CGPoint(x: margin + bw + out, y: margin - out), false, true),
-                (CGPoint(x: margin - out, y: margin + bh + out), true, false),
-                (CGPoint(x: margin + bw + out, y: margin + bh + out), false, false),
-            ]
-            ZStack(alignment: .topLeading) {
-                ForEach(corners.indices, id: \.self) { index in
-                    let corner = corners[index]
-                    Circle()
-                        .fill(.white)
-                        .overlay(Circle().stroke(QuillTheme.accent, lineWidth: 1.5))
-                        .frame(width: handleSize, height: handleSize)
-                        .padding(pad) // generous hit target around the tiny circle
-                        .contentShape(Circle())
-                        .highPriorityGesture(resizeGesture(for: block, leading: corner.leading,
-                                                           top: corner.top,
-                                                           startSize: CGSize(width: bw, height: bh)))
-                        .offset(x: corner.center.x - box / 2, y: corner.center.y - box / 2)
-                }
-            }
-            .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
+        let hit: CGFloat = 34 // UIKit hit-view size
+        // Container corner is `handleMargin` beyond the box; nudge inward so the
+        // handle centre lands `out` beyond the box corner.
+        let inset = handleMargin - hit / 2 - out
+        let boxSize = boxRects[block.wrappedValue.id]?.size
+            ?? CGSize(width: block.wrappedValue.width ?? 200,
+                      height: block.wrappedValue.height ?? 44)
+        return ResizePanHandle(
+            onChanged: { t in
+                applyResize(block, leading: leading, top: top, startSize: boxSize, translation: t)
+            },
+            onEnded: { resizeStart = nil; onChanged() }
+        )
+        .frame(width: hit, height: hit)
+        .overlay(
+            Circle()
+                .fill(.white)
+                .overlay(Circle().stroke(QuillTheme.accent, lineWidth: 1.5))
+                .frame(width: handleSize, height: handleSize)
+                .allowsHitTesting(false)
+        )
+        .offset(x: leading ? inset : -inset, y: top ? inset : -inset)
+    }
+
+    /// Shared resize math: sets the box's width/height (and x/y for the
+    /// left/top edges) from a drag translation in content coordinates.
+    private func applyResize(_ block: Binding<TextBlock>, leading: Bool, top: Bool,
+                             startSize: CGSize, translation: CGSize) {
+        if resizeStart == nil {
+            resizeStart = (startSize, block.wrappedValue.x, block.wrappedValue.y)
         }
+        guard let start = resizeStart else { return }
+        let dx = translation.width
+        let dy = translation.height
+        let newWidth = max(60, min(800, leading ? start.size.width - dx : start.size.width + dx))
+        let newHeight = max(32, min(800, top ? start.size.height - dy : start.size.height + dy))
+        block.wrappedValue.width = Double(newWidth)
+        block.wrappedValue.height = Double(newHeight)
+        if leading { block.wrappedValue.x = start.x + Double(start.size.width - newWidth) }
+        if top { block.wrappedValue.y = start.y + Double(start.size.height - newHeight) }
     }
 
     /// In-flight resize bookkeeping (box size and origin at drag start).
     @State private var resizeStart: (size: CGSize, x: Double, y: Double)?
-
-    private func resizeGesture(for block: Binding<TextBlock>, leading: Bool,
-                               top: Bool, startSize: CGSize) -> some Gesture {
-        DragGesture(coordinateSpace: .named("textLayer"))
-            .onChanged { drag in
-                if resizeStart == nil {
-                    resizeStart = (startSize, block.wrappedValue.x, block.wrappedValue.y)
-                }
-                guard let start = resizeStart else { return }
-                let dx = drag.translation.width
-                let dy = drag.translation.height
-
-                let newWidth = max(60, min(800, leading ? start.size.width - dx
-                                                        : start.size.width + dx))
-                let newHeight = max(32, min(800, top ? start.size.height - dy
-                                                     : start.size.height + dy))
-                block.wrappedValue.width = Double(newWidth)
-                block.wrappedValue.height = Double(newHeight)
-                if leading { // left edge moves; right edge stays anchored
-                    block.wrappedValue.x = start.x + Double(start.size.width - newWidth)
-                }
-                if top { // top edge moves; bottom edge stays anchored
-                    block.wrappedValue.y = start.y + Double(start.size.height - newHeight)
-                }
-            }
-            .onEnded { _ in
-                resizeStart = nil
-                onChanged()
-            }
-    }
 
     /// Move / resize / delete controls on the dark floating strip. Plain
     /// buttons with real hit targets — no Menu (flaky on Catalyst overlays).
@@ -419,5 +415,51 @@ private extension Text {
             .foregroundStyle(.white)
             .frame(width: size.width, height: size.height)
             .contentShape(Rectangle())
+    }
+}
+
+/// A transparent UIKit view with a `UIPanGestureRecognizer`, bridged into
+/// SwiftUI. Used for the corner resize handles because SwiftUI drag gestures
+/// on overlays above the frozen PKCanvasView never fire on Mac Catalyst,
+/// whereas real UIKit gesture recognizers (like the ones backing the working
+/// strip buttons) do. Reports the pan translation in the view's own
+/// coordinate space — which equals canvas CONTENT space, since an ancestor
+/// applies the zoom transform, so deltas are already zoom-correct.
+private struct ResizePanHandle: UIViewRepresentable {
+    var onChanged: (CGSize) -> Void
+    var onEnded: () -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        view.backgroundColor = .clear
+        let pan = UIPanGestureRecognizer(target: context.coordinator,
+                                         action: #selector(Coordinator.handle(_:)))
+        pan.maximumNumberOfTouches = 1
+        view.addGestureRecognizer(pan)
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+        context.coordinator.onChanged = onChanged
+        context.coordinator.onEnded = onEnded
+    }
+
+    final class Coordinator: NSObject {
+        var onChanged: ((CGSize) -> Void)?
+        var onEnded: (() -> Void)?
+
+        @objc func handle(_ g: UIPanGestureRecognizer) {
+            let t = g.translation(in: g.view)
+            switch g.state {
+            case .changed:
+                onChanged?(CGSize(width: t.x, height: t.y))
+            case .ended, .cancelled, .failed:
+                onEnded?()
+            default:
+                break
+            }
+        }
     }
 }
