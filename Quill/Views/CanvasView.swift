@@ -89,9 +89,10 @@ struct CanvasView: UIViewRepresentable {
         context.coordinator.attach(to: canvas)
         context.coordinator.refreshInkBottom(canvas)
 
-        #if !targetEnvironment(macCatalyst)
         canvas.onInsertTextBlock = onLongPress
         let blockAt = blockAt
+        canvas.blockHit = { blockAt?($0) != nil }
+        #if !targetEnvironment(macCatalyst)
         let textActive = textActive
         canvas.menuSuppressed = { [weak canvas] point in
             if textActive?() == true { return true } // deselecting tap, not a menu
@@ -209,15 +210,11 @@ struct CanvasView: UIViewRepresentable {
             canvas.addGestureRecognizer(hover)
 
             // Cursor while drawing: passive observer, never steals a stroke.
-            // Doubles as the edit menu's anchor tracker on iPad.
             let observer = TouchObserver()
             observer.cancelsTouchesInView = false
             observer.delegate = self
-            observer.onTouch = { [weak self, weak canvas] point, down in
+            observer.onTouch = { [weak self] point, down in
                 self?.reportCursor(point, down: down)
-                #if !targetEnvironment(macCatalyst)
-                if down { (canvas as? GrowingCanvasView)?.lastTouchPoint = point }
-                #endif
             }
             canvas.addGestureRecognizer(observer)
 
@@ -257,14 +254,16 @@ struct CanvasView: UIViewRepresentable {
             // in a window yet (palette never appeared). The Mac uses its own
             // MacToolStrip instead.
             attachToolPickerWhenReady(canvas)
+            #endif
 
-            // Put the A| action into PencilKit's tap edit menu. Retried like
-            // the tool picker — the menu machinery attaches lazily.
+            // Put the text-block action into PencilKit's edit menu — the
+            // iPad's tap callout, which Catalyst shows as the Mac's
+            // right-click menu (same machinery on both). Retried like the
+            // tool picker — the menu machinery attaches lazily.
             if let growing = canvas as? GrowingCanvasView {
                 EditMenuAugment.activeCanvas = growing
                 augmentEditMenuWhenReady(growing)
             }
-            #endif
 
             // Press-and-hold on a TEXT BLOCK grabs it (drag to move, release
             // in place to edit). iPad: finger-only, and gated (shouldReceive)
@@ -281,13 +280,6 @@ struct CanvasView: UIViewRepresentable {
             longPress.delegate = self
             canvas.addGestureRecognizer(longPress)
             blockPressRecognizer = longPress
-
-            #if targetEnvironment(macCatalyst)
-            // Right-click on the canvas: a native context menu with the
-            // text-block action (the iPad's equivalent lives in PencilKit's
-            // tap edit menu).
-            canvas.addInteraction(UIContextMenuInteraction(delegate: self))
-            #endif
 
             #if !targetEnvironment(macCatalyst)
             // A plain finger TAP on a block opens it for interaction (drag,
@@ -320,7 +312,6 @@ struct CanvasView: UIViewRepresentable {
         }
         #endif
 
-        #if !targetEnvironment(macCatalyst)
         private func augmentEditMenuWhenReady(_ canvas: GrowingCanvasView, attempt: Int = 0) {
             guard attempt < 12 else { return } // ~6s, then live with the stock menu
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak canvas] in
@@ -330,7 +321,6 @@ struct CanvasView: UIViewRepresentable {
                 }
             }
         }
-        #endif
 
         func detachToolPicker(from canvas: PKCanvasView) {
             #if !targetEnvironment(macCatalyst)
@@ -705,28 +695,6 @@ struct CanvasView: UIViewRepresentable {
     }
 }
 
-#if targetEnvironment(macCatalyst)
-extension CanvasView.Coordinator: UIContextMenuInteractionDelegate {
-    func contextMenuInteraction(_ interaction: UIContextMenuInteraction,
-                                configurationForMenuAtLocation location: CGPoint)
-        -> UIContextMenuConfiguration? {
-        let scale = canvas?.zoomScale ?? 1
-        let point = CGPoint(x: location.x / scale, y: location.y / scale)
-        let onBlock = parent.blockAt?(point) != nil
-        return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
-            UIMenu(children: [
-                UIAction(title: onBlock ? "Edit Text Block" : "Add Text Block",
-                         image: UIImage(systemName: "character.cursor.ibeam")) { _ in
-                    // Same path as click-and-hold: selects the block there,
-                    // or plants a fresh one at the pointer.
-                    self?.parent.onLongPress?(point)
-                }
-            ])
-        })
-    }
-}
-#endif
-
 extension CanvasView.Coordinator: UIGestureRecognizerDelegate {
     func gestureRecognizer(_ g: UIGestureRecognizer,
                            shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
@@ -763,10 +731,8 @@ extension CanvasView.Coordinator: UIGestureRecognizerDelegate {
 /// callback, but the growing page must be re-derived on first layout (bounds
 /// are zero during make), rotation, window resize, and every zoom frame.
 ///
-/// On iPad it also injects **Insert Text Block** into the system edit menu
-/// PencilKit shows on a finger press (next to Select All / Insert Space) —
-/// PencilKit exposes no menu API, so the action rides the responder-chain
-/// menu builder instead.
+/// Also carries the hooks `EditMenuAugment` needs to rework PencilKit's edit
+/// menu (iPad tap callout / Mac right-click menu — same machinery).
 final class GrowingCanvasView: PKCanvasView {
     var onLayout: (() -> Void)?
 
@@ -775,19 +741,20 @@ final class GrowingCanvasView: PKCanvasView {
         onLayout?()
     }
 
-    #if !targetEnvironment(macCatalyst)
-    /// Called with the menu's tap point in content coordinates. Reached from
-    /// the A| action `EditMenuAugment` adds to PencilKit's tap edit menu
-    /// (the menu-builder route was verified dead on device — PencilKit's
-    /// edit menu bypasses UIMenuSystem).
+    /// Adds/edits a text block at the menu's press point (content
+    /// coordinates). Reached from the action `EditMenuAugment` puts into
+    /// PencilKit's edit menu (the menu-builder route was verified dead on
+    /// device — PencilKit's edit menu bypasses UIMenuSystem).
     var onInsertTextBlock: ((CGPoint) -> Void)?
+    /// Does a text block cover this content point? (The Mac's right-click
+    /// menu branches to "Edit Text Block" on it.)
+    var blockHit: ((CGPoint) -> Bool)?
+
+    #if !targetEnvironment(macCatalyst)
     /// True when the tapped content point sits on an object (text block or
-    /// ink) — the system edit bar is suppressed there; objects get direct
+    /// ink) — the iPad's edit bar is suppressed there; objects get direct
     /// interaction instead.
     var menuSuppressed: ((CGPoint) -> Bool)?
-    /// Last touch in view coordinates, tracked passively — the edit menu
-    /// doesn't hand its anchor point to the augmented action.
-    var lastTouchPoint: CGPoint = .zero
     #endif
 }
 
