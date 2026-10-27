@@ -12,8 +12,10 @@ settings:
     MARKETING_VERSION: "1.0"
     CURRENT_PROJECT_VERSION: "1"
     CODE_SIGN_STYLE: Automatic
-    # Miguel's personal team — baked in so `xcodegen generate` keeps signing.
-    DEVELOPMENT_TEAM: WU79HE9Z5S
+    # Export QUILL_DEVELOPMENT_TEAM=<your Apple team ID> before
+    # `xcodegen generate` to keep signing across regenerations. If it is unset,
+    # pick your Team in Xcode (Signing & Capabilities).
+    DEVELOPMENT_TEAM: ${QUILL_DEVELOPMENT_TEAM}
 
 targets:
   Quill:

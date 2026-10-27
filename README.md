@@ -5,6 +5,8 @@ it live on the other, each with a ghost cursor showing the other's pointer.
 Sketches are saved like Notes and sync between the two devices when they're near
 each other — **peer-to-peer, no account, no server, no cost.**
 
+> Status: early development, a personal project. Expect rough edges.
+
 The UI follows the **Studio** design (`design_handoff_quill_redesign/`): a
 sidebar + thumbnail-grid home, a single-row drawing bar with a five-tool
 switcher (Text is a tool), hairline borders on a warm off-white palette, and
@@ -84,6 +86,8 @@ In Xcode:
 3. **Run on Mac:** switch the destination to **My Mac (Mac Catalyst)** and Run.
 
 Regenerate the project after adding/removing files: `xcodegen generate`.
+To keep your Team across regenerations, export `QUILL_DEVELOPMENT_TEAM=<your team ID>`
+first (your team ID is shown in Xcode → Settings → Accounts).
 
 ## Testing the live experience (needs 2 real devices)
 
@@ -153,3 +157,7 @@ project.yml                          XcodeGen spec (source of truth)
 - **Editing a pad at the exact moment a conflict for it resolves** is an
   unhandled edge (rare) — the on-screen canvas may lag the resolved copy until
   you reopen it.
+
+## License
+
+[MIT](LICENSE) © 2026 Miguel Fernandes
